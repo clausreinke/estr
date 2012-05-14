@@ -109,6 +109,9 @@ function rename(oldName,location,newName) { return function(sourcefile,source) {
 function checkName(name) {
   try {
 
+    if (name==='arguments')
+      throw 'not permitted';
+
     var nameAST = parse(name);
     // console.log(util.inspect(nameAST,false,4));
 
@@ -118,7 +121,7 @@ function checkName(name) {
                &&(nameAST.body[0].expression.type==='Identifier')
                &&(nameAST.body[0].expression.name===name);
     if (!nameOK)
-      console.error('not a valid variable name >'+name+'<');
+      throw 'not valid';
     return nameOK;
 
   } catch (e) {
@@ -259,6 +262,8 @@ function find(name,location,node) {
 
       // console.log('variable occurrence found ',node);
       // console.log(util.inspect(scopes,false,5));
+      if (!node.innerScopes)
+        node.innerScopes = [];          // augmenting AST
 
       // traverse scope chain upwards, to find binders;
       // record bound and (relatively) free variable occurrences 
@@ -288,8 +293,6 @@ function find(name,location,node) {
 
           scopes[i].freeVars.push(node); // augmenting AST
           // if (node.name===name)
-          if (!node.innerScopes)
-            node.innerScopes = [];          // augmenting AST
           node.innerScopes.push(scopes[i]); // augmenting AST
 
         }
@@ -352,6 +355,7 @@ function find(name,location,node) {
 }
 
 // TODO: do we need to collect funs and vars separately (10.5)?
+//        => just insert funs before vars, if needed?
 function collectDecls(node) {
   var decls = [];
 
