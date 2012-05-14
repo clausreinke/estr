@@ -91,8 +91,8 @@ function generateTags(sourcefile,source) {
                     ,addr: node.param.loc.start.line
                     ,kind: "ve"
                     ,lineno: node.param.loc.start.line
-                    ,scope: node.body.loc.start.line+":"+(node.body.loc.start.column+1)+"-"
-                           +node.body.loc.end.line+":"+node.body.loc.end.column
+                    ,scope: node.loc.start.line+":"+(node.loc.start.column+1)+"-"
+                           +node.loc.end.line+":"+node.loc.end.column
                     });
 
         }
