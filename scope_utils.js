@@ -8,7 +8,12 @@ var ast_utils        = require("./ast_utils.js");
 var traverse         = ast_utils.traverse;
 var traverseWithKeys = ast_utils.traverseWithKeys;
 
-ast_utils.registerAnnotations(['decls','occurrences','freeVars','innerScopes']);
+ast_utils.registerAnnotations(['decls'
+                              ,'occurrences'
+                              ,'freeVars'
+                              ,'innerScopes'
+                              ,'hoistConflict'
+                              ]);
 
 // rename variable oldName at loc (line/column) to newName
 //
@@ -47,6 +52,7 @@ function rename(oldName,location,newName) { return function(sourcefile,source) {
 
   var oldNameBinding,newNameBinding;
   var innerScopeCaptures = [];
+  var hoistConflict;
   var newSource;
 
   if (binding_scope) {
@@ -82,11 +88,20 @@ function rename(oldName,location,newName) { return function(sourcefile,source) {
               innerScopeCaptures.push([v.name,v.loc,d]);
           });
         });
+        if (v.hoistConflict) hoistConflict = v;
       });
+      if (oldNameBinding[0].hoistConflict) hoistConflict = oldNameBinding[0];
+
       if (innerScopeCaptures.length>0) {
         console.error('renamed occurrences of '+oldName+' would be captured');
         console.error('by existing bindings for '+newName);
         console.error(util.inspect(innerScopeCaptures,false,5));
+        return;
+      }
+
+      if (hoistConflict) {
+        console.error('cannot rename declaration hoisted over catch');
+        console.error(hoistConflict);
         return;
       }
 
@@ -199,6 +214,8 @@ function findVar(name,location) { return function(sourcefile,source) {
 //    between them and their binding_scope
 //
 // TODO: should we make the annotations non-enumerable?
+//
+// TODO: circular reference possible via innerScopes
 //
 // TODO: try to split it into general (reusable) scope-annotater and 
 //       renaming-specific info-gathering for capture-avoidance checks?
@@ -354,15 +371,20 @@ function find(name,location,node) {
   return binding_scope;
 }
 
-// TODO: do we need to collect funs and vars separately (10.5)?
-//        => just insert funs before vars, if needed?
+// TODO: - do we need to collect funs and vars separately (10.5)?
+//          => just insert funs before vars, if needed?
 function collectDecls(node) {
-  var decls = [];
+  var decls = [], catches = [];
 
   function collectDeclsAction(node,children) {
 
       if (node.type==='FunctionDeclaration') {
 
+        if (catches.indexOf(node.id.name)>-1) {
+          node.id.hoistConflict = true;
+          console.warn('hoisting function declaration over catch of same name: ',node.id.name);
+          console.warn(node.loc);
+        }
         decls.push([node.id,node.type]);
         return;
 
@@ -372,11 +394,26 @@ function collectDecls(node) {
 
       } else if (node.type==='VariableDeclarator') {
 
+        if (catches.indexOf(node.id.name)>-1) {
+          node.id.hoistConflict = true;
+          console.warn('hoisting var declaration over catch of same name: ',node.id.name);
+          console.warn(node.loc);
+        }
         decls.push([node.id,node.type]);
+
+      } else if (node.type==='CatchClause') {
+
+        catches.push(node.param.name);
 
       }
 
       children.forEach(traverse(collectDeclsAction));
+
+      if (node.type==='CatchClause') {
+
+        catches.pop();
+
+      }
 
   }
 
