@@ -22,15 +22,14 @@ ast_utils.registerAnnotations(['decls'
 // 2 find binding_scope for var (error if unfound)
 // 3 find oldName occurrences bound to binding_scope (at least one)
 // 4 find newName occurrences relatively free in binding_scope
+// 5 find newName binders between binding_scope and bound oldName occurrences
 // 6 check that newName at binding scope does not conflict with existing binder there
 //    (TODO: what about different levels - function id vs params vs fundecls vs vars?)
 // 7 check that newName at binding scope does not capture existing vars (4)
+// 8 check that occurrences of newName are not captured by existing binders (3,5)
 // 9 return copy of source, replacing bound occurrences of oldName (3) with newName
 //    (to achieve faithful reproduction of untransformed source, use range info
 //     to replace names while copying source)
-// TODO:
-// 5 find newName binders between binding_scope and bound oldName occurrences
-// 8 check that occurrences of newName are not captured by existing binders (3,5)
 //
 // TODO: for multiple declarations, we choose the first as the binding occurrence
 //
