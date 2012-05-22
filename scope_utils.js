@@ -199,7 +199,41 @@ function findVar(name,location) { return function(sourcefile,source) {
   }
 
   var binding_scope = find(name,location,result);
-  console.log( util.inspect(binding_scope,false,7) );
+  var nameBinding;
+
+  if (binding_scope) {
+
+    // console.log( util.inspect(binding_scope,false,5) );
+
+    console.log('binding scope: ');
+    console.log(binding_scope.type,binding_scope.loc);
+    binding_scope.decls.forEach(function(d){
+      if (d[0].name===name && !nameBinding) nameBinding = d;
+    });
+
+    if (nameBinding) {
+
+      if (nameBinding[0].hoistConflict
+        ||nameBinding[0].occurrences.some(function(o){return o.hoistConflict})) {
+
+        console.warn('WARNING! Information affected by hoisting over catch.');
+      }
+
+      console.log('binding occurrence: ');
+      console.log(nameBinding[1],nameBinding[0].loc.start);
+      console.log('other occurrences: ');
+      console.log(nameBinding[0].occurrences.map(function(o){
+                                                  return [o.name,o.loc.start]
+                                                 }));
+
+    } else
+
+      console.error("binding not found in binding scope???");
+
+
+  } else
+
+    console.error("no binding scope found");
 } }
 
 // find binding_scope for variable name at location, within node
@@ -381,7 +415,7 @@ function collectDecls(node) {
 
         if (catches.indexOf(node.id.name)>-1) {
           node.id.hoistConflict = true;
-          console.warn('hoisting function declaration over catch of same name: ',node.id.name);
+          console.warn('WARNING! hoisting function declaration over catch of same name: ',node.id.name);
           console.warn(node.loc);
         }
         decls.push([node.id,node.type]);
@@ -395,7 +429,7 @@ function collectDecls(node) {
 
         if (catches.indexOf(node.id.name)>-1) {
           node.id.hoistConflict = true;
-          console.warn('hoisting var declaration over catch of same name: ',node.id.name);
+          console.warn('WARNING! hoisting var declaration over catch of same name: ',node.id.name);
           console.warn(node.loc);
         }
         decls.push([node.id,node.type]);
