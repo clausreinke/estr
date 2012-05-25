@@ -1,0 +1,30 @@
+!_TAG_FILE_SORTED	1	
+!_TAG_PROGRAM_AUTHOR	Claus Reinke	
+!_TAG_PROGRAM_NAME	estr	
+!_TAG_PROGRAM_URL	https://github.com/clausreinke/estr	
+!_TAG_PROGRAM_VERSION	0.0	
+A	sample.js	3;"	f	lineno:3	scope:global
+A	sample.js	7;"	f	lineno:7	scope:5:14-14:15
+a	sample.js	35;"	vp	lineno:35	scope:35:30-37:1
+b	sample.js	35;"	vp	lineno:35	scope:35:30-37:1
+e	sample.js	20;"	v	lineno:20	scope:3:1-33:1
+e	sample.js	19;"	ve	lineno:19	scope:19:5-22:3
+f	sample.js	41;"	ve	lineno:41	scope:41:3-44:1
+f	sample.js	28;"	f	lineno:28	scope:3:1-33:1
+f	sample.js	27;"	ve	lineno:27	scope:27:5-30:3
+ff	sample.js	42;"	v	lineno:42	scope:global
+log	sample.js	1;"	f	lineno:1	scope:global
+outer	sample.js	35;"	f	lineno:35	scope:global
+x	sample.js	15;"	vp	lineno:15	scope:15:12-15:92
+x	sample.js	15;"	vp	lineno:15	scope:15:60-15:84
+x	sample.js	4;"	v	lineno:4	scope:3:1-33:1
+x	sample.js	35;"	vp	lineno:35	scope:35:1-37:2
+x	sample.js	9;"	v	lineno:9	scope:7:17-12:17
+x	sample.js	5;"	vp	lineno:5	scope:5:14-14:15
+x	sample.js	1;"	vp	lineno:1	scope:1:1-1:19
+x	sample.js	15;"	vp	lineno:15	scope:15:34-15:58
+y	sample.js	35;"	vp	lineno:35	scope:35:1-37:2
+y	sample.js	5;"	v	lineno:5	scope:3:1-33:1
+z	sample.js	10;"	v	lineno:10	scope:7:17-12:17
+z	sample.js	15;"	v	lineno:15	scope:3:1-33:1
+z	sample.js	2;"	v	lineno:2	scope:global

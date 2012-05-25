@@ -1,0 +1,25 @@
+WARNING! hoisting var declaration over catch of same name:  e
+{ start: { line: 20, column: 8 },
+  end: { line: 20, column: 16 } }
+WARNING! hoisting function declaration over catch of same name:  f
+{ start: { line: 28, column: 4 },
+  end: { line: 28, column: 24 } }
+renamed occurrences of x would be captured
+by existing bindings for a
+[ [ 'x',
+    { start: { line: 36, column: 10 },
+      end: { line: 36, column: 11 } },
+    [ { type: 'Identifier',
+        name: 'a',
+        range: [ 775, 776 ],
+        loc: 
+         { start: { line: 35, column: 38 },
+           end: { line: 35, column: 39 } },
+        occurrences: 
+         [ { type: 'Identifier',
+             name: 'a',
+             range: [Object],
+             loc: [Object],
+             innerScopes: [] } ],
+        innerScopes: [] },
+      'FunctionExpression Parameter' ] ] ]

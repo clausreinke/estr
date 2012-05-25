@@ -1,0 +1,24 @@
+WARNING! hoisting var declaration over catch of same name:  e
+{ start: { line: 20, column: 8 },
+  end: { line: 20, column: 16 } }
+WARNING! hoisting function declaration over catch of same name:  f
+{ start: { line: 28, column: 4 },
+  end: { line: 28, column: 24 } }
+renamed binding for a would conflict
+with existing binding for b in the same scope
+[ { type: 'Identifier',
+    name: 'b',
+    range: [ 777, 778 ],
+    loc: 
+     { start: { line: 35, column: 40 },
+       end: { line: 35, column: 41 } },
+    occurrences: 
+     [ { type: 'Identifier',
+         name: 'b',
+         range: [ 799, 800 ],
+         loc: 
+          { start: { line: 36, column: 16 },
+            end: { line: 36, column: 17 } },
+         innerScopes: [] } ],
+    innerScopes: [] },
+  'FunctionExpression Parameter' ]
