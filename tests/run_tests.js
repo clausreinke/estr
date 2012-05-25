@@ -72,6 +72,8 @@ function diff(files,output) {
 
 }
 
+try { fs.mkdirSync('tmp'); } catch(e) {}
+
 // should succeed
 test('help','node ../estr.js help');
 
