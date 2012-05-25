@@ -1,0 +1,24 @@
+WARNING! hoisting var declaration over catch of same name:  e
+{ start: { line: 20, column: 8 },
+  end: { line: 20, column: 16 } }
+WARNING! hoisting function declaration over catch of same name:  f
+{ start: { line: 28, column: 4 },
+  end: { line: 28, column: 24 } }
+renamed occurrences of ff would be captured
+by existing bindings for f
+[ [ 'ff',
+    { start: { line: 42, column: 6 }, end: { line: 42, column: 8 } },
+    [ { type: 'Identifier',
+        name: 'f',
+        range: [ 861, 862 ],
+        loc: 
+         { start: { line: 41, column: 9 },
+           end: { line: 41, column: 10 } },
+        occurrences: 
+         [ { type: 'Identifier',
+             name: 'f',
+             range: [Object],
+             loc: [Object],
+             innerScopes: [] } ],
+        innerScopes: [] },
+      'CatchClause Parameter' ] ] ]

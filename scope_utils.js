@@ -34,10 +34,10 @@ ast_utils.registerAnnotations(['decls'
 //
 // + check that renaming does not touch same-name hoisting over catch
 // + do not rename variables where the declaration is not visible (globals)
+// + check that renaming does not introduce same-name hoisting over catch (8)
 //
 // TODO: for multiple declarations, we choose the first as the binding occurrence
 //
-// TODO: check that renaming does not introduce same-name hoisting over catch
 //
 function rename(oldName,location,newName) { return function(sourcefile,source) {
 
@@ -86,15 +86,16 @@ function rename(oldName,location,newName) { return function(sourcefile,source) {
     if (oldNameBinding) {
 
       // console.log( util.inspect(oldNameBinding,false,9) );
-      oldNameBinding[0].occurrences.forEach(function(v){ // TODO: avoid repetition
-        v.innerScopes.forEach(function(s){
-          s.decls.forEach(function(d){
-            if (d[0].name===newName)
-              innerScopeCaptures.push([v.name,v.loc,d]);
+      oldNameBinding[0].occurrences.concat([oldNameBinding[0]])
+        .forEach(function(v){ // TODO: avoid repetition
+          v.innerScopes.forEach(function(s){
+            s.decls.forEach(function(d){
+              if (d[0].name===newName)
+                innerScopeCaptures.push([v.name,v.loc,d]);
+            });
           });
+          if (v.hoistConflict) hoistConflict = v;
         });
-        if (v.hoistConflict) hoistConflict = v;
-      });
       if (oldNameBinding[0].hoistConflict) hoistConflict = oldNameBinding[0];
 
       if (innerScopeCaptures.length>0) {
