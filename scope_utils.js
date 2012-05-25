@@ -1,4 +1,5 @@
-
+// TODO: - shorten console errors
+//       - support JS results instead of console results
 
 var util     = require("util");
 
@@ -31,7 +32,12 @@ ast_utils.registerAnnotations(['decls'
 //    (to achieve faithful reproduction of untransformed source, use range info
 //     to replace names while copying source)
 //
+// + check that renaming does not touch same-name hoisting over catch
+// + do not rename variables where the declaration is not visible (globals)
+//
 // TODO: for multiple declarations, we choose the first as the binding occurrence
+//
+// TODO: check that renaming does not introduce same-name hoisting over catch
 //
 function rename(oldName,location,newName) { return function(sourcefile,source) {
 
@@ -105,7 +111,7 @@ function rename(oldName,location,newName) { return function(sourcefile,source) {
       }
 
       newSource = replace(oldNameBinding[0],newName,source);
-      console.log(newSource);
+      process.stdout.write(newSource);
 
     } else
 
