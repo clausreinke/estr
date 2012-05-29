@@ -38,19 +38,41 @@ switch (process.argv[2]) {
 
   case "findVar": // file varName line column
     // experimental, temporary
-    processJSfiles([process.argv[3]]
-                  ,scope_utils.findVar(process.argv[4]
-                                      ,{line:   +process.argv[5]
-                                       ,column: +process.argv[6]}));
+    (function(){
+      var results = processJSfiles([process.argv[3]]
+                                  ,scope_utils.findVar(process.argv[4]
+                                                      ,{line:   +process.argv[5]
+                                                       ,column: +process.argv[6]}));
+      if (results[0]) {
+        var scope   = results[0].scope;
+        var binding = results[0].binding;
+
+        console.log('binding scope: ');
+        console.log(scope.type,scope.loc);
+
+        console.log('binding occurrence: ');
+        console.log(binding[1],binding[0].loc.start);
+        console.log('other occurrences: ');
+        console.log(binding[0].occurrences.map(function(o){
+                                                return [o.name,o.loc.start]
+                                               }));
+
+      }
+    }());
     break;
 
   case "rename": // file oldName line column newName
     // experimental, work in progress
-    processJSfiles([process.argv[3]]
-                  ,scope_utils.rename(process.argv[4]
-                                     ,{line:   +process.argv[5]
-                                      ,column: +process.argv[6]}
-                                     ,process.argv[7]));
+    (function(){
+      var results = processJSfiles([process.argv[3]]
+                                  ,scope_utils.rename(process.argv[4]
+                                                     ,{line:   +process.argv[5]
+                                                      ,column: +process.argv[6]}
+                                                     ,process.argv[7]));
+      if (results[0] && results[0].source) {
+        process.stdout.write(results[0].source);
+      }
+    }());
     break;
 
 }
@@ -59,16 +81,21 @@ switch (process.argv[2]) {
 // (no protection against cycles)
 function processJSfiles(paths,action) {
   var stat,source;
+  var results = [];
   paths.forEach(function(path) {
     stat = fs.statSync(path);
     if (stat.isFile() && path.match(/\.js$/)) {
       source = fs.readFileSync(path,'utf8');
-      action(path,source);
-    } else if (stat.isDirectory())
-      processJSfiles(fs.readdirSync(path).map(function(p){return path+'/'+p}),action);
-    else
+      results.push( action(path,source) );
+    } else if (stat.isDirectory()) {
+      var dirContents = fs.readdirSync(path);
+      results.concat( processJSfiles(dirContents.map(function(p){return path+'/'+p})
+                                    ,action) );
+    } else {
       console.error("ignoring "+path);
+    }
   }); 
+  return results;
 }
 
 function updateFile(action) { return function(path,source) {

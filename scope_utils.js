@@ -112,7 +112,7 @@ function rename(oldName,location,newName) { return function(sourcefile,source) {
       }
 
       newSource = replace(oldNameBinding[0],newName,source);
-      process.stdout.write(newSource);
+      return {source: newSource};
 
     } else
 
@@ -212,8 +212,10 @@ function findVar(name,location) { return function(sourcefile,source) {
 
     // console.log( util.inspect(binding_scope,false,5) );
 
+    /*
     console.log('binding scope: ');
     console.log(binding_scope.type,binding_scope.loc);
+    */
     binding_scope.decls.forEach(function(d){
       if (d[0].name===name && !nameBinding) nameBinding = d;
     });
@@ -226,12 +228,18 @@ function findVar(name,location) { return function(sourcefile,source) {
         console.warn('WARNING! Information affected by hoisting over catch.');
       }
 
+      /*
       console.log('binding occurrence: ');
       console.log(nameBinding[1],nameBinding[0].loc.start);
       console.log('other occurrences: ');
       console.log(nameBinding[0].occurrences.map(function(o){
                                                   return [o.name,o.loc.start]
                                                  }));
+      */
+
+      return {scope:binding_scope
+             ,binding:nameBinding
+             };
 
     } else
 
