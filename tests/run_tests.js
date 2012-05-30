@@ -30,7 +30,8 @@ function test(name,cmd,files) {
     fs.writeFileSync(output_dir+name+'.stdout',stdout);
     fs.writeFileSync(output_dir+name+'.stderr',stderr);
 
-    if (files) {
+    if (files) { // TODO: if cmd fails, not all files might exist
+                 //       yet those that do need to be cleaned away
       exec('mv '+files.join(' ')+' '+output_dir,function(error){
         if (error) throw error;
         diff([name+'.error',name+'.stdout',name+'.stderr'].concat(files),['//']);
@@ -94,9 +95,12 @@ test('rename-var-in-catch','node ../estr.js rename sample.js e 21 8 x_____x');
 test('rename-function-in-catch-1','node ../estr.js rename sample.js f 31 6 x_____x');
 test('rename-function-in-catch-2','node ../estr.js rename sample.js f 28 21 x_____x');
 test('rename-function-in-catch-3','node ../estr.js rename sample.js f 27 11 x_____x');
-// fix this!
 test('rename-introduce-catch-hoist-conflict','node ../estr.js rename sample.js ff 45 4 f');
 
 // should succeed
 test('rename-success','node ../estr.js rename sample.js z 6 20 x_____x');
+
+// experimental
+test('findVar','node ../estr.js findVar sample.js z 15 6');
+test('collectDecls','node ../estr.js collectDecls sample.js');
 
