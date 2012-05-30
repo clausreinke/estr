@@ -1,7 +1,6 @@
-// TODO: - shorten console errors
-//       - support JS results instead of console results
+// TODO: - abstract over console errors/warnings?
 
-var util     = require("util");
+// var util     = require("util");
 
 var parse    = require("./esprima.js").parse; // TODO: use node_modules/ ?
 
@@ -71,15 +70,20 @@ function rename(oldName,location,newName) { return function(sourcefile,source) {
     if (newNameBinding) {
       console.error('renamed binding for '+oldName+' would conflict');
       console.error('with existing binding for '+newName+' in the same scope');
-      console.error(util.inspect(newNameBinding,false,5));
+      console.error(newNameBinding[0].loc.start,newNameBinding[1]);
+      // console.error(util.inspect(newNameBinding,false,5));
       return;
     }
 
     if (binding_scope.freeVars.some(function(fv){ return (fv.name===newName) })) {
       console.error('renamed binding for '+oldName+' would capture');
       console.error('existing occurrences of '+newName);
-      console.error(util.inspect(binding_scope.freeVars
-                                .filter(function(fv){ return (fv.name===newName) }),false,5));
+      binding_scope.freeVars.forEach(function(fv){
+        if (fv.name===newName)
+          console.error(fv.loc.start);
+      });
+      // console.error(util.inspect(binding_scope.freeVars
+      //                           .filter(function(fv){ return (fv.name===newName) }),false,5));
       return;
     }
 
@@ -101,7 +105,11 @@ function rename(oldName,location,newName) { return function(sourcefile,source) {
       if (innerScopeCaptures.length>0) {
         console.error('renamed occurrences of '+oldName+' would be captured');
         console.error('by existing bindings for '+newName);
-        console.error(util.inspect(innerScopeCaptures,false,5));
+        innerScopeCaptures.forEach(function(isc){
+          console.error(isc[0],isc[1].start,'by'
+                       ,isc[2][0].name,isc[2][0].loc.start,isc[2][1]);
+        });
+        // console.error(util.inspect(innerScopeCaptures,false,5));
         return;
       }
 
