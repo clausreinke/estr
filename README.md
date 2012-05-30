@@ -29,9 +29,11 @@ Assumptions
 
 - in rename, <line> <column> point to the beginning of an oldName occurrence;
   all oldName occurrences in the same scope will be renamed, provided that
-  
+
   - oldName/newName are valid Identifiers
+  - a binding for oldName is available
   - no existing binding for newName in the same scope
   - no existing occurrences of newName will be captured by renamed binding
   - no renamed occurrences of oldName will be captured by existing binding
+  - renaming is not affected by same-name hoisting over catch (language edge case)
 
