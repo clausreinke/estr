@@ -33,7 +33,15 @@ switch (process.argv[2]) {
 
   case "collectDecls":  // ..paths
     // experimental, temporary
-    processJSfiles(process.argv.slice(3),scope_utils.collect);
+    (function(){
+      var results = processJSfiles(process.argv.slice(3),scope_utils.collect);
+      if (results[0]) {
+        // console.log(util.inspect(results[0],false,4));
+        results[0].forEach(function(decl){
+          console.log(decl[0].name,decl[0].loc.start,decl[1]);
+        });
+      }
+    }());
     break;
 
   case "findVar": // file varName line column

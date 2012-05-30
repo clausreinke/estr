@@ -192,7 +192,8 @@ function collect(sourcefile,source) {
   }
 
   var decls = collectDecls(result);
-  console.log(util.inspect(decls,false,4));
+  // console.log(util.inspect(decls,false,4));
+  return decls;
 
 }
 
