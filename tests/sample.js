@@ -43,3 +43,6 @@ try {
   log(f);
 }
 log(ff);
+function require(dependency) {
+  return require.cache[dependency].dependency // computed vs non-computed properties
+}

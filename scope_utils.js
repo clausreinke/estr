@@ -406,7 +406,7 @@ function find(name,location,node) {
 
       case 'MemberExpression':
       
-        if (node.property.type==='Identifier') {
+        if (!node.computed) {
           // skip non-computed property selectors
           traverseWithKeys(findAction(node))(['object',node.object]);
           break;

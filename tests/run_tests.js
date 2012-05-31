@@ -99,6 +99,7 @@ test('rename-introduce-catch-hoist-conflict','node ../estr.js rename sample.js f
 
 // should succeed
 test('rename-success','node ../estr.js rename sample.js z 6 20 x_____x');
+test('rename-success-properties','node ../estr.js rename sample.js dependency 47 23 x_____x');
 
 // experimental
 test('findVar','node ../estr.js findVar sample.js z 15 6');

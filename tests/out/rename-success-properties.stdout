@@ -3,7 +3,7 @@ var z;
 function A() {
   var x;
   var y = [x,function(x) {
-                log(x_____x.a);
+                log(z.a);
                 function A() {
                   log(z.b);
                   var x;
@@ -12,7 +12,7 @@ function A() {
                 }
                 return A(x);
               }];
-  var x_____x = [function(x) { return (function(x) { return x; }(function(x) { return x; }))(x); },x];
+  var z = [function(x) { return (function(x) { return x; }(function(x) { return x; }))(x); },x];
 
   try {
     throw "hi";
@@ -43,6 +43,6 @@ try {
   log(f);
 }
 log(ff);
-function require(dependency) {
-  return require.cache[dependency].dependency // computed vs non-computed properties
+function require(x_____x) {
+  return require.cache[x_____x].dependency // computed vs non-computed properties
 }
