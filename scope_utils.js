@@ -1,5 +1,7 @@
 // TODO: - abstract over console errors/warnings?
 
+(function(require,exports){
+
 // var util     = require("util");
 
 var parse    = require("./esprima.js").parse; // TODO: use node_modules/ ?
@@ -354,7 +356,8 @@ function find(name,location,node) {
                                  })) {
           if (node.name===name
             && node.loc.start.line===location.line
-            && node.loc.start.column===location.column) {
+            && node.loc.start.column<=location.column
+            && node.loc.end.column>=location.column) {
 
             binding_scope = scopes[i];
             // console.log('binding scope found ',binding_scope);
@@ -484,3 +487,12 @@ exports.collect = collect;
 exports.findVar = findVar;
 
 exports.rename  = rename;
+
+}(typeof require==='function'
+   ? require
+   : function(dependency) { return require.cache[dependency] }
+ ,typeof exports==='object'
+   ? exports
+   : (require.cache?require.cache:require.cache={})['./scope_utils.js'] = {}
+ ));
+

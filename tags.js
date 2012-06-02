@@ -1,4 +1,6 @@
 
+(function(require,exports){
+
 var parse    = require("./esprima.js").parse; // TODO: use node_modules/ ?
 
 var traverse = require("./ast_utils.js").traverse;
@@ -137,3 +139,12 @@ exports.tags = tags;
 exports.generateTags = generateTags;
 
 exports.tagFile = tagFile;
+
+}(typeof require==='function'
+   ? require
+   : function(dependency) { return require.cache[dependency] }
+ ,typeof exports==='object'
+   ? exports
+   : (require.cache?require.cache:require.cache={})['./tags.js'] = {}
+ ));
+

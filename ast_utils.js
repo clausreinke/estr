@@ -1,7 +1,9 @@
 
-// TODO: do we need to sort AST children in source order?
-//       if yes, it might be good to keep index of sorted keys
-//
+// TODO: - do we need to sort AST children in source order?
+//          if yes, it might be good to keep index of sorted keys
+//       - replace property key blacklist with child key whitelist
+
+(function(require,exports){
 
 // mask out AST node fields that hold annotations, not child nodes;
 // standard annotations
@@ -59,3 +61,12 @@ function traverseWithKeys(action) { return function(parentKey_obj) {
 exports.registerAnnotations = registerAnnotations;
 exports.traverse            = traverse;
 exports.traverseWithKeys    = traverseWithKeys;
+
+}(typeof require==='function'
+   ? require
+   : function(dependency) { return require.cache[dependency] }
+ ,typeof exports==='object'
+   ? exports
+   : (require.cache?require.cache:require.cache={})['./ast_utils.js'] = {}
+ ));
+
