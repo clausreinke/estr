@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>estr demo</title>
+
+<script src="CodeMirror2/lib/codemirror.js"></script>
+<link rel="stylesheet" href="CodeMirror2/lib/codemirror.css">
+<script src="CodeMirror2/mode/javascript/javascript.js"></script>
+
+<script src="esprima.js"></script>
+<script id="require">
+function require(dependency) {
+  return require.cache[dependency]
+}
+require.cache = { "./esprima.js": esprima };
+</script>
+<script src="ast_utils.js"></script>
+<script src="scope_utils.js"></script>
+</head>
+
+<style>
+textarea        { width: 100%; height: 10em }
+.currentVar     { background-color: lightgreen }
+.currentBinding { background-color: lightblue }
+.currentUnbound { text-decoration: underline; background-color: red }
+</style>
+
+<body>
+
+<textarea id="in">
+</textarea>
+
+<form action="#">
+<input id="oldName" type='text' title='old name'>
+<input id="rename" type='submit' value='rename'>
+<input id="undo" type='submit' value='undo'>
+<input id="redo" type='submit' value='redo'>
+</form>
+
+<textarea id="out">
+</textarea>
+
+<script>
+// TODO: - don't reparse on every move
+//       - include errors/warnings in results, instead of console
+
+var inArea  = document.getElementById('in');
+var outArea = document.getElementById('out');
+
+var rename  = require('./scope_utils.js').rename;
+var findVar = require('./scope_utils.js').findVar;
+// var source  = esprima.parse.toString();
+var source  = renameAction.toString();
+
+inArea.innerHTML = source;
+
+var inCodeMirror  = CodeMirror.fromTextArea(inArea
+                                           ,{onCursorActivity:onCursor});
+var outCodeMirror = CodeMirror.fromTextArea(outArea);
+
+var currentVarMarks = [];
+
+function onCursor(editor) {
+    var coords = editor.getCursor(true);
+    var token  = editor.getTokenAt(coords);
+    console.log(token);
+    if (token && token.className && token.className.match(/variable|def/)) {
+      var result = findVar(token.string,{line:coords.line+1,column:coords.ch})
+                          ('in',editor.getValue());
+
+      currentVarMarks.forEach(function(mark){
+        mark.clear();
+      });
+      currentVarMarks = [];
+
+      if (result) {
+        document.getElementById('oldName').value = token.string;
+
+        var bindLoc = result.binding[0].loc;
+        currentVarMarks.push(
+          editor.markText({line:bindLoc.start.line-1,ch:bindLoc.start.column}
+                         ,{line:bindLoc.end.line-1,  ch:bindLoc.end.column}
+                         ,'currentBinding'));
+        result.binding[0]
+              .occurrences
+              .forEach(function(o){
+                        currentVarMarks.push(
+                          editor.markText({line:o.loc.start.line-1
+                                          ,ch:o.loc.start.column}
+                                         ,{line:o.loc.end.line-1
+                                          ,ch:o.loc.end.column}
+                                         ,'currentVar'));
+                       });
+
+        /*
+        outCodeMirror.setValue(
+          'binding occurrence: '+
+          result.binding[1]+': '+result.binding[0].loc.start.line
+                                +'/'+result.binding[0].loc.start.column+'\n'+
+          'other occurrences: '+
+          result.binding[0]
+                .occurrences
+                .map(function(o){
+                      return [o.loc.start.line+'/'+o.loc.start.column]
+                     }));
+        */
+      } else {
+        currentVarMarks.push(
+          editor.markText({line:coords.line,ch:token.start}
+                         ,{line:coords.line,ch:token.end}
+                         ,'currentUnbound'));
+      }
+    } else {
+      document.getElementById('oldName').value = ""; // +'('+token.className+')';
+    }
+};
+
+function renameAction() {
+  try {
+    var coords = inCodeMirror.getCursor(true);
+    var token  = inCodeMirror.getTokenAt(coords);
+    var newName = prompt('new name?','x____x');
+    var renamed_source = 
+      rename(token.string,{line:coords.line+1,column:coords.ch},newName)
+            ('in',inCodeMirror.getValue()).source;
+    inCodeMirror.setValue(renamed_source);
+    outCodeMirror.setValue('');
+  } catch (e) {
+    console.error(e);
+    outCodeMirror.setValue('renaming failed (see error log)\n'+e);
+  }
+}
+
+function refocus(action) { return function() {
+  var coords = inCodeMirror.getCursor(true);
+  action();
+  inCodeMirror.focus();
+  inCodeMirror.setCursor(coords);
+}}
+
+document.getElementById('rename')
+        .addEventListener('click',refocus(renameAction),false);
+document.getElementById('undo')
+        .addEventListener('click',refocus(inCodeMirror.undo),false);
+document.getElementById('redo')
+        .addEventListener('click',refocus(inCodeMirror.redo),false);
+
+inCodeMirror.focus();
+
+</script>
+
+</body>
+
+</html>
