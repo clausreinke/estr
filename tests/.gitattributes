@@ -1,0 +1,4 @@
+sample.js -text
+tags      -text
+*.stdout  -text
+*.stderr  -text
