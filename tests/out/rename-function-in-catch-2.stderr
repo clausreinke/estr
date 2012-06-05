@@ -5,25 +5,4 @@ WARNING! hoisting function declaration over catch of same name:  f
 { start: { line: 28, column: 4 },
   end: { line: 28, column: 24 } }
 cannot rename declaration hoisted over catch
-{ type: 'Identifier',
-  name: 'f',
-  range: [ 625, 626 ],
-  loc: 
-   { start: { line: 28, column: 13 },
-     end: { line: 28, column: 14 } },
-  hoistConflict: true,
-  occurrences: 
-   [ { type: 'Identifier',
-       name: 'f',
-       range: [Object],
-       loc: [Object],
-       innerScopes: [] } ],
-  innerScopes: 
-   [ { type: 'FunctionDeclaration',
-       id: [Circular],
-       params: [],
-       body: [Object],
-       range: [Object],
-       loc: [Object],
-       freeVars: [Object],
-       decls: [] } ] }
+f { line: 28, column: 13 }
