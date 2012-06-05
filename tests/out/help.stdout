@@ -4,4 +4,7 @@ estr tags ..paths
    traverse paths, extract tags from .js-files, write to file "tags"
 
 estr rename file.js oldName <line> <column> newName
-   parse file.js, rename oldName (at <line> <column>) to newName
+   rename oldName (at <line> <column>) to newName
+
+estr findVar file.js name <line> <column>
+   find binding and other occurrences for name
