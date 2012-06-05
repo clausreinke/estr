@@ -22,7 +22,10 @@ switch (process.argv[2]) {
     console.log('   traverse paths, extract tags from .js-files, write to file "tags"');
     console.log();
     console.log('estr rename file.js oldName <line> <column> newName');
-    console.log('   parse file.js, rename oldName (at <line> <column>) to newName');
+    console.log('   rename oldName (at <line> <column>) to newName');
+    console.log();
+    console.log('estr findVar file.js name <line> <column>');
+    console.log('   find binding and other occurrences for name');
     break;
 
   case "tags":  // ..paths

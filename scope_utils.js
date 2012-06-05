@@ -117,7 +117,7 @@ function rename(oldName,location,newName) { return function(sourcefile,source) {
 
       if (hoistConflict) {
         console.error('cannot rename declaration hoisted over catch');
-        console.error(hoistConflict);
+        console.error(hoistConflict.name,hoistConflict.loc.start);
         return;
       }
 
