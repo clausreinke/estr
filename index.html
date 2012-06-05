@@ -21,9 +21,12 @@ require.cache = { "./esprima.js": esprima };
 
 <style>
 textarea        { width: 100%; height: 10em }
-.currentVar     { background-color: lightgreen }
-.currentBinding { background-color: lightblue }
+.currentVar     { background-color: #CEFFCE }
+.currentBinding { background-color: #B6EEE8 }
 .currentUnbound { text-decoration: underline; background-color: red }
+#occurrences    { border: thin solid; padding: 0.2em; color: #05a }
+#next,#previous { background: #CEFFCE }
+#binding        { background: #B6EEE8 }
 </style>
 
 <body>
@@ -38,6 +41,11 @@ This is an in-browser demo of <a href="https://github.com/clausreinke/estr">estr
 <input id="rename" type='submit' value='rename'>
 <input id="undo" type='submit' value='undo'>
 <input id="redo" type='submit' value='redo'>
+<span id="occurrences">
+<input id="previous" type='submit' value='previous'>
+<input id="binding" type='submit' value='binding'>
+<input id="next" type='submit' value='next'>
+</span>
 </form>
 
 <textarea id="out">
@@ -46,6 +54,8 @@ This is an in-browser demo of <a href="https://github.com/clausreinke/estr">estr
 <script>
 // TODO: - don't reparse on every move
 //       - include errors/warnings in results, instead of console
+//       - shim forEach, .. for older browsers?
+//       - state-dependent enable/disable of buttons
 
 var inArea  = document.getElementById('in');
 var outArea = document.getElementById('out');
@@ -61,6 +71,7 @@ var inCodeMirror  = CodeMirror.fromTextArea(inArea
                                            ,{onCursorActivity:onCursor});
 var outCodeMirror = CodeMirror.fromTextArea(outArea);
 
+var currentVar      = null;
 var currentVarMarks = [];
 
 function onCursor(editor) {
@@ -75,11 +86,13 @@ function onCursor(editor) {
         mark.clear();
       });
       currentVarMarks = [];
+      currentVar      = null;
 
       if (result) {
         document.getElementById('oldName').value = token.string;
 
         var bindLoc = result.binding[0].loc;
+        currentVar  = result.binding;
         currentVarMarks.push(
           editor.markText({line:bindLoc.start.line-1,ch:bindLoc.start.column}
                          ,{line:bindLoc.end.line-1,  ch:bindLoc.end.column}
@@ -95,18 +108,6 @@ function onCursor(editor) {
                                          ,'currentVar'));
                        });
 
-        /*
-        outCodeMirror.setValue(
-          'binding occurrence: '+
-          result.binding[1]+': '+result.binding[0].loc.start.line
-                                +'/'+result.binding[0].loc.start.column+'\n'+
-          'other occurrences: '+
-          result.binding[0]
-                .occurrences
-                .map(function(o){
-                      return [o.loc.start.line+'/'+o.loc.start.column]
-                     }));
-        */
       } else {
         currentVarMarks.push(
           editor.markText({line:coords.line,ch:token.start}
@@ -117,6 +118,29 @@ function onCursor(editor) {
       document.getElementById('oldName').value = ""; // +'('+token.className+')';
     }
 };
+
+function move(direction) { return function() {
+  if (direction===0) {
+    inCodeMirror.setCursor({line:currentVar[0].loc.start.line-1
+                           ,ch:  currentVar[0].loc.start.column});
+    return;
+  }
+  var coords = inCodeMirror.getCursor(true);
+  var index = -1;
+  for (var i=0; i<currentVarMarks.length; i++) {
+    mark = currentVarMarks[i].find();
+    if (mark.from.line===coords.line
+     && mark.from.ch<=coords.ch
+     && mark.to.ch>=coords.ch) {
+      index = i;
+      break;
+    }
+  }
+  if (index>-1) {
+    var target = (index+currentVarMarks.length+direction)%currentVarMarks.length;
+    inCodeMirror.setCursor(currentVarMarks[target].find().from);
+  }
+} }
 
 function renameAction() {
   try {
@@ -134,19 +158,25 @@ function renameAction() {
   }
 }
 
-function refocus(action) { return function() {
+function refocus(action,repos) { return function() {
   var coords = inCodeMirror.getCursor(true);
   action();
   inCodeMirror.focus();
-  inCodeMirror.setCursor(coords);
+  if (repos) inCodeMirror.setCursor(coords);
 }}
 
 document.getElementById('rename')
-        .addEventListener('click',refocus(renameAction),false);
+        .addEventListener('click',refocus(renameAction,true),false);
 document.getElementById('undo')
-        .addEventListener('click',refocus(inCodeMirror.undo),false);
+        .addEventListener('click',refocus(inCodeMirror.undo,true),false);
 document.getElementById('redo')
-        .addEventListener('click',refocus(inCodeMirror.redo),false);
+        .addEventListener('click',refocus(inCodeMirror.redo,true),false);
+document.getElementById('next')
+        .addEventListener('click',refocus(move(+1)),false);
+document.getElementById('binding')
+        .addEventListener('click',refocus(move(0)),false);
+document.getElementById('previous')
+        .addEventListener('click',refocus(move(-1)),false);
 
 inCodeMirror.focus();
 
