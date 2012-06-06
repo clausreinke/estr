@@ -2,9 +2,13 @@
 ESTR - ECMAScript traversals
 ============================
 
-Commandline tool for working with Javascript code, using nodejs and esprima.
+Javascript tool for working with Javascript code, using esprima.
+Estr has a commandline interface, using nodejs, but its modules can
+also be used from the browser. There is an [in-browser demo](http://clausreinke.github.com/estr) showing scoped
+variable highlighting, navigation to variable occurrences, and
+variable renaming.
 
-Currently supports:
+Estr currently supports:
 
 - generating scope-aware tags from [esprima](http://esprima.org/) ASTs, for use with the [scoped_tags Vim mode](https://github.com/clausreinke/scoped_tags)
 
@@ -12,7 +16,7 @@ Currently supports:
 
 - find variable binding and other occurrences
 
-Usage
+Commandline usage
 -----
 
 ```
