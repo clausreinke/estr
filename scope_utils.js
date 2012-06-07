@@ -17,6 +17,19 @@ ast_utils.registerAnnotations(['decls'
                               ,'hoistConflict'
                               ]);
 
+// wrap action to add parsing; pass AST or return parse error
+function parseThen(action) { return function(sourcefile,source) {
+
+  try {
+    var sourceAST = parse(source,{loc:true,range:true});
+  } catch (e) {
+    return {parseError:e,sourcefile:sourcefile};
+  }
+
+  return action(sourcefile,source,sourceAST);
+
+}}
+
 // rename variable oldName at loc (line/column) to newName
 //
 // 0 check oldName/newName are valid
@@ -39,18 +52,11 @@ ast_utils.registerAnnotations(['decls'
 //
 // TODO: for multiple declarations, we choose the first as the binding occurrence
 //
-//
-function rename(oldName,location,newName) { return function(sourcefile,source) {
+function rename(oldName,location,newName) {
+  return parseThen(function(sourcefile,source,sourceAST) {
 
-  if (!checkName(oldName) || !checkName(newName))
+  if (!checkName(oldName) || !checkName(newName)) // TODO: move out?
     return;
-
-  try {
-    var sourceAST = parse(source,{loc:true,range:true});
-  } catch (e) {
-    console.error("parse error in "+sourcefile,e);
-    return;
-  }
 
   // augment AST with scope-related info, and find
   // binding_scope for oldName occurrence at location
@@ -132,7 +138,7 @@ function rename(oldName,location,newName) { return function(sourcefile,source) {
 
     console.error("no binding scope found");
 
-} }
+}) }
 
 // is name a valid variable name?
 // (would be nicer to call Identifier-nonterminal parser directly,
@@ -192,31 +198,18 @@ function insert(binding,others) {
   return others.slice(0,position).concat([binding],others.slice(position));
 }
 
-function collect(sourcefile,source) {
+function collect(sourcefile,source,sourceAST) {
 
-  try {
-    var result = parse(source,{loc:true,range:true});
-  } catch (e) {
-    console.error("parse error in "+sourcefile,e);
-    return;
-  }
+  var decls = collectDecls(sourceAST);
 
-  var decls = collectDecls(result);
-  // console.log(util.inspect(decls,false,4));
   return decls;
 
 }
 
-function findVar(name,location) { return function(sourcefile,source) {
+function findVar(name,location) {
+  return parseThen(function(sourcefile,source,sourceAST) {
 
-  try {
-    var result = parse(source,{loc:true,range:true});
-  } catch (e) {
-    console.error("parse error in "+sourcefile,e);
-    return;
-  }
-
-  var binding_scope = find(name,location,result);
+  var binding_scope = find(name,location,sourceAST);
   var nameBinding;
 
   if (binding_scope) {
@@ -260,7 +253,7 @@ function findVar(name,location) { return function(sourcefile,source) {
   } else
 
     console.error("no binding scope found");
-} }
+}) }
 
 // find binding_scope for variable name at location, within node
 //
@@ -482,7 +475,7 @@ function collectDecls(node) {
 
 }
 
-exports.collect = collect; 
+exports.collect = parseThen(collect);
 
 exports.findVar = findVar;
 

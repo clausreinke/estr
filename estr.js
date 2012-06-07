@@ -39,10 +39,18 @@ switch (process.argv[2]) {
     (function(){
       var results = processJSfiles(process.argv.slice(3),scope_utils.collect);
       if (results[0]) {
-        // console.log(util.inspect(results[0],false,4));
-        results[0].forEach(function(decl){
-          console.log(decl[0].name,decl[0].loc.start,decl[1]);
-        });
+        if (results[0].parseError) {
+
+          console.error("parse error in "+results[0].sourcefile
+                       ,results[0].parseError);
+
+        } else {
+
+          results[0].forEach(function(decl){
+            console.log(decl[0].name,decl[0].loc.start,decl[1]);
+          });
+
+        }
       }
     }());
     break;
@@ -55,19 +63,31 @@ switch (process.argv[2]) {
                                                       ,{line:   +process.argv[5]
                                                        ,column: +process.argv[6]}));
       if (results[0]) {
-        var scope   = results[0].scope;
-        var binding = results[0].binding;
+        if (results[0].scope && results[0].binding) {
 
-        console.log('binding scope: ');
-        console.log(scope.type,scope.loc);
+          var scope   = results[0].scope;
+          var binding = results[0].binding;
 
-        console.log('binding occurrence: ');
-        console.log(binding[1],binding[0].loc.start);
-        console.log('other occurrences: ');
-        console.log(binding[0].occurrences.map(function(o){
-                                                return [o.name,o.loc.start]
-                                               }));
+          console.log('binding scope: ');
+          console.log(scope.type,scope.loc);
 
+          console.log('binding occurrence: ');
+          console.log(binding[1],binding[0].loc.start);
+          console.log('other occurrences: ');
+          console.log(binding[0].occurrences.map(function(o){
+                                                  return [o.name,o.loc.start]
+                                                 }));
+
+        } else if (results[0].parseError) {
+
+          console.error("parse error in "+results[0].sourcefile
+                       ,results[0].parseError);
+
+        } else {
+
+          console.error('unknown result',results[0]);
+
+        }
       }
     }());
     break;
@@ -80,8 +100,21 @@ switch (process.argv[2]) {
                                                      ,{line:   +process.argv[5]
                                                       ,column: +process.argv[6]}
                                                      ,process.argv[7]));
-      if (results[0] && results[0].source) {
-        process.stdout.write(results[0].source);
+      if (results[0]) {
+        if (results[0].source) {
+
+          process.stdout.write(results[0].source);
+
+        } else if (results[0].parseError) {
+
+          console.error("parse error in "+results[0].sourcefile
+                       ,results[0].parseError);
+
+        } else {
+
+          console.error('unknown result',results[0]);
+
+        }
       }
     }());
     break;
