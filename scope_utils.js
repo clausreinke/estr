@@ -2,8 +2,6 @@
 
 (function(require,exports){
 
-// var util     = require("util");
-
 var parse    = require("./esprima.js").parse; // TODO: use node_modules/ ?
 
 var ast_utils        = require("./ast_utils.js");
@@ -69,7 +67,6 @@ function rename(oldName,location,newName) {
 
   if (binding_scope) {
 
-    // console.log( util.inspect(binding_scope,false,7) );
     binding_scope.decls.forEach(function(d){
       if (d[0].name===oldName && !oldNameBinding) oldNameBinding = d;
       if (d[0].name===newName && !newNameBinding) newNameBinding = d;
@@ -79,7 +76,6 @@ function rename(oldName,location,newName) {
       console.error('renamed binding for '+oldName+' would conflict');
       console.error('with existing binding for '+newName+' in the same scope');
       console.error(newNameBinding[0].loc.start,newNameBinding[1]);
-      // console.error(util.inspect(newNameBinding,false,5));
       return;
     }
 
@@ -90,14 +86,11 @@ function rename(oldName,location,newName) {
         if (fv.name===newName)
           console.error(fv.loc.start);
       });
-      // console.error(util.inspect(binding_scope.freeVars
-      //                           .filter(function(fv){ return (fv.name===newName) }),false,5));
       return;
     }
 
     if (oldNameBinding) {
 
-      // console.log( util.inspect(oldNameBinding,false,9) );
       oldNameBinding[0].occurrences.concat([oldNameBinding[0]])
         .forEach(function(v){ // TODO: avoid repetition
           v.innerScopes.forEach(function(s){
@@ -117,7 +110,6 @@ function rename(oldName,location,newName) {
           console.error(isc[0],isc[1].start,'by'
                        ,isc[2][0].name,isc[2][0].loc.start,isc[2][1]);
         });
-        // console.error(util.inspect(innerScopeCaptures,false,5));
         return;
       }
 
@@ -150,7 +142,6 @@ function checkName(name) {
       throw 'not permitted';
 
     var nameAST = parse(name);
-    // console.log(util.inspect(nameAST,false,4));
 
     var nameOK = (nameAST.type==='Program')
                &&(nameAST.body.length===1)
@@ -214,12 +205,6 @@ function findVar(name,location) {
 
   if (binding_scope) {
 
-    // console.log( util.inspect(binding_scope,false,5) );
-
-    /*
-    console.log('binding scope: ');
-    console.log(binding_scope.type,binding_scope.loc);
-    */
     binding_scope.decls.forEach(function(d){
       if (d[0].name===name && !nameBinding) nameBinding = d;
     });
@@ -231,15 +216,6 @@ function findVar(name,location) {
 
         console.warn('WARNING! Information affected by hoisting over catch.');
       }
-
-      /*
-      console.log('binding occurrence: ');
-      console.log(nameBinding[1],nameBinding[0].loc.start);
-      console.log('other occurrences: ');
-      console.log(nameBinding[0].occurrences.map(function(o){
-                                                  return [o.name,o.loc.start]
-                                                 }));
-      */
 
       return {scope:binding_scope
              ,binding:nameBinding
@@ -269,7 +245,7 @@ function findVar(name,location) {
 //
 // TODO: circular reference possible via innerScopes
 //
-// TODO: try to split it into general (reusable) scope-annotater and 
+// TODO: try to split it into general (reusable) scope-annotater and
 //       renaming-specific info-gathering for capture-avoidance checks?
 //
 function find(name,location,node) {
@@ -278,11 +254,6 @@ function find(name,location,node) {
   function findAction(parent) { return function(key,node,children) {
     var decls     = [];
     var scopebase = scopes.length;
-
-    // console.log( 'parent', parent );
-    // console.log( key+'='+node.type+(node.type==='Identifier'?'('+node.name+')':''), node.loc );
-    // console.log( '>'+scopes.length
-    //           , util.inspect(scopes.map(function(s){return [s.type,s.loc]}),false,5) );
 
     switch (node.type) {
     case 'FunctionDeclaration':
@@ -329,13 +300,11 @@ function find(name,location,node) {
 
     case 'Identifier':
 
-      // console.log('variable occurrence found ',node);
-      // console.log(util.inspect(scopes,false,5));
       if (!node.innerScopes)
         node.innerScopes = [];          // augmenting AST
 
       // traverse scope chain upwards, to find binders;
-      // record bound and (relatively) free variable occurrences 
+      // record bound and (relatively) free variable occurrences
       // for each binder, and record the binding_scope for name
       // TODO: cleanup
       for (var i=scopes.length-1; i>=0; i--) {
@@ -353,8 +322,6 @@ function find(name,location,node) {
             && node.loc.end.column>=location.column) {
 
             binding_scope = scopes[i];
-            // console.log('binding scope found ',binding_scope);
-            // console.log(binding_scope.loc);
 
           }
           break;
@@ -368,7 +335,7 @@ function find(name,location,node) {
         }
       }
 
-    } 
+    }
 
     // traverse AST node children;
     //
@@ -401,7 +368,7 @@ function find(name,location,node) {
         break;
 
       case 'MemberExpression':
-      
+
         if (!node.computed) {
           // skip non-computed property selectors
           traverseWithKeys(findAction(node))(['object',node.object]);
@@ -416,7 +383,7 @@ function find(name,location,node) {
 
 
     if (scopes.length>scopebase) scopes.pop();
-    
+
   } }
 
   traverseWithKeys(findAction(null))(['root',node]);
