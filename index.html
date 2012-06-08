@@ -27,6 +27,8 @@ textarea        { width: 100%; height: 10em }
 #occurrences    { border: thin solid; padding: 0.2em; color: #05a }
 #next,#previous { background: #CEFFCE }
 #binding        { background: #B6EEE8 }
+.Error          { background: red !important}
+.Warning        { background: yellow !important}
 </style>
 
 <body>
@@ -53,9 +55,10 @@ This is an in-browser demo of <a href="https://github.com/clausreinke/estr">estr
 
 <script>
 // TODO: - don't reparse on every move
-//       - include errors/warnings in results, instead of console
+//       - reparse on change, not on action
 //       - shim forEach, .. for older browsers?
 //       - state-dependent enable/disable of buttons
+//       - clean up
 
 var inArea  = document.getElementById('in');
 var outArea = document.getElementById('out');
@@ -68,11 +71,14 @@ var source  = renameAction.toString();
 inArea.innerHTML = source;
 
 var inCodeMirror  = CodeMirror.fromTextArea(inArea
-                                           ,{onCursorActivity:onCursor});
+                                           ,{onCursorActivity:onCursor
+                                            ,gutter:true});
 var outCodeMirror = CodeMirror.fromTextArea(outArea);
 
 var currentVar      = null;
 var currentVarMarks = [];
+
+var currentErrorMarkers = [];
 
 function onCursor(editor) {
     var coords = editor.getCursor(true);
@@ -88,31 +94,55 @@ function onCursor(editor) {
       currentVarMarks = [];
       currentVar      = null;
 
+      currentErrorMarkers.forEach(function(line){
+        editor.clearMarker(line);
+      });
+      currentErrorMarkers = [];
+      outCodeMirror.setValue('');
+
       if (result) {
-        document.getElementById('oldName').value = token.string;
+        if (result.parseError) {
+          outCodeMirror.setValue('parse error in source:\n'
+                                +result.parseError);
+          console.error('parse error in source:',result.parseError);
+          currentErrorMarkers.push(
+            editor.setMarker(result.parseError.lineNumber-1,'!','Error')
+          );
+        } else if (result.error) {
+          outCodeMirror.setValue(result.error.message);
+          currentVarMarks.push(
+            editor.markText({line:coords.line,ch:token.start}
+                           ,{line:coords.line,ch:token.end}
+                           ,'currentUnbound'));
+        } else {
+          if (result.warnings) {
+            outCodeMirror.setValue(outCodeMirror.getValue()+'\n'+result.warnings);
+            result.warnings.match(/start: { line: \d+/g)
+                           .forEach(function(p){
+                              currentErrorMarkers.push(
+                                editor.setMarker(p.match(/\d+/)-1,'?','Warning')
+                              );
+                            });
+          }
+          document.getElementById('oldName').value = token.string;
 
-        var bindLoc = result.binding[0].loc;
-        currentVar  = result.binding;
-        currentVarMarks.push(
-          editor.markText({line:bindLoc.start.line-1,ch:bindLoc.start.column}
-                         ,{line:bindLoc.end.line-1,  ch:bindLoc.end.column}
-                         ,'currentBinding'));
-        result.binding[0]
-              .occurrences
-              .forEach(function(o){
-                        currentVarMarks.push(
-                          editor.markText({line:o.loc.start.line-1
-                                          ,ch:o.loc.start.column}
-                                         ,{line:o.loc.end.line-1
-                                          ,ch:o.loc.end.column}
-                                         ,'currentVar'));
-                       });
-
-      } else {
-        currentVarMarks.push(
-          editor.markText({line:coords.line,ch:token.start}
-                         ,{line:coords.line,ch:token.end}
-                         ,'currentUnbound'));
+          var bindLoc = result.binding[0].loc;
+          currentVar  = result.binding;
+          currentVarMarks.push(
+            editor.markText({line:bindLoc.start.line-1,ch:bindLoc.start.column}
+                           ,{line:bindLoc.end.line-1,  ch:bindLoc.end.column}
+                           ,'currentBinding'));
+          result.binding[0]
+                .occurrences
+                .forEach(function(o){
+                          currentVarMarks.push(
+                            editor.markText({line:o.loc.start.line-1
+                                            ,ch:o.loc.start.column}
+                                           ,{line:o.loc.end.line-1
+                                            ,ch:o.loc.end.column}
+                                           ,'currentVar'));
+                         });
+        }
       }
     } else {
       document.getElementById('oldName').value = ""; // +'('+token.className+')';
@@ -147,11 +177,31 @@ function renameAction() {
     var coords = inCodeMirror.getCursor(true);
     var token  = inCodeMirror.getTokenAt(coords);
     var newName = prompt('new name?','x____x');
-    var renamed_source = 
+    var output = [];
+
+    var renamed =
       rename(token.string,{line:coords.line+1,column:coords.ch},newName)
-            ('in',inCodeMirror.getValue()).source;
-    inCodeMirror.setValue(renamed_source);
-    outCodeMirror.setValue('');
+            ('in',inCodeMirror.getValue());
+    if (renamed) {
+      if (renamed.warnings) {
+        output.push(renamed.warnings);
+      }
+      if (renamed.parseError) { // should have been handled by onCursor
+        output.push(renamed.warnings);
+      }
+      if (renamed.error) {
+        output.push(renamed.error.message);
+        renamed.error.message.match(/line: \d+/g)
+                       .forEach(function(p){
+                          currentErrorMarkers.push(
+                            inCodeMirror.setMarker(p.match(/\d+/)-1,'!','Error')
+                          );
+                        });
+      } else {
+        inCodeMirror.setValue(renamed.source);
+      }
+    }
+    outCodeMirror.setValue(output.join('\n'));
   } catch (e) {
     console.error(e);
     outCodeMirror.setValue('renaming failed (see error log)\n'+e);
