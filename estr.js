@@ -44,11 +44,19 @@ switch (process.argv[2]) {
           console.error("parse error in "+results[0].sourcefile
                        ,results[0].parseError);
 
-        } else {
+        } else if (results[0].decls){
 
-          results[0].forEach(function(decl){
+          if (results[0].warnings) {
+            console.warn(results[0].warnings);
+          }
+
+          results[0].decls.forEach(function(decl){
             console.log(decl[0].name,decl[0].loc.start,decl[1]);
           });
+
+        } else {
+
+          console.error('unknown result',results[0]);
 
         }
       }
@@ -63,6 +71,10 @@ switch (process.argv[2]) {
                                                       ,{line:   +process.argv[5]
                                                        ,column: +process.argv[6]}));
       if (results[0]) {
+        if (results[0].warnings) {
+          console.warn(results[0].warnings);
+        }
+
         if (results[0].scope && results[0].binding) {
 
           var scope   = results[0].scope;
@@ -83,6 +95,10 @@ switch (process.argv[2]) {
           console.error("parse error in "+results[0].sourcefile
                        ,results[0].parseError);
 
+        } else if (results[0].error) {
+
+          console.error(results[0].error.message);
+
         } else {
 
           console.error('unknown result',results[0]);
@@ -101,6 +117,10 @@ switch (process.argv[2]) {
                                                       ,column: +process.argv[6]}
                                                      ,process.argv[7]));
       if (results[0]) {
+        if (results[0].warnings) {
+          console.warn(results[0].warnings);
+        }
+
         if (results[0].source) {
 
           process.stdout.write(results[0].source);
@@ -109,6 +129,10 @@ switch (process.argv[2]) {
 
           console.error("parse error in "+results[0].sourcefile
                        ,results[0].parseError);
+
+        } else if (results[0].error) {
+
+          console.error(results[0].error.message);
 
         } else {
 

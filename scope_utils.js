@@ -1,4 +1,3 @@
-// TODO: - abstract over console errors/warnings?
 
 (function(require,exports){
 
@@ -53,12 +52,18 @@ function parseThen(action) { return function(sourcefile,source) {
 function rename(oldName,location,newName) {
   return parseThen(function(sourcefile,source,sourceAST) {
 
-  if (!checkName(oldName) || !checkName(newName)) // TODO: move out?
-    return;
+  try {
+    checkName(oldName); // TODO: move out?
+    checkName(newName); // TODO: move out?
+  } catch (e) {
+    return {error: {message:e,type:'InvalidName'}};
+  }
 
   // augment AST with scope-related info, and find
   // binding_scope for oldName occurrence at location
-  var binding_scope = find(oldName,location,sourceAST);
+  var found         = find(oldName,location,sourceAST);
+  var binding_scope = found.binding_scope;
+  var warnings      = found.warnings;
 
   var oldNameBinding,newNameBinding;
   var innerScopeCaptures = [];
@@ -73,20 +78,26 @@ function rename(oldName,location,newName) {
     });
 
     if (newNameBinding) {
-      console.error('renamed binding for '+oldName+' would conflict');
-      console.error('with existing binding for '+newName+' in the same scope');
-      console.error(newNameBinding[0].loc.start,newNameBinding[1]);
-      return;
+      return add({error:
+        {message:'renamed binding for '+oldName+' would conflict\n'
+                +'with existing binding for '+newName+' in the same scope\n'
+                +show_loc_point(newNameBinding[0].loc.start)+' '
+                +"'"+newNameBinding[1]+"'"
+        ,type: 'RenamedBindingConflict'
+        }},'warnings',warnings);
     }
 
     if (binding_scope.freeVars.some(function(fv){ return (fv.name===newName) })) {
-      console.error('renamed binding for '+oldName+' would capture');
-      console.error('existing occurrences of '+newName);
-      binding_scope.freeVars.forEach(function(fv){
-        if (fv.name===newName)
-          console.error(fv.loc.start);
-      });
-      return;
+      return add({error:
+        {message:'renamed binding for '+oldName+' would capture\n'
+                +'existing occurrences of '+newName+'\n'
+                +binding_scope.freeVars.filter(function(fv){
+                   return (fv.name===newName)
+                 }).map(function(fv) {
+                   return show_loc_point(fv.loc.start)
+                 }).join('\n')
+        ,type: 'CaptureExisting'
+        }},'warnings',warnings);
     }
 
     if (oldNameBinding) {
@@ -104,33 +115,49 @@ function rename(oldName,location,newName) {
       if (oldNameBinding[0].hoistConflict) hoistConflict = oldNameBinding[0];
 
       if (innerScopeCaptures.length>0) {
-        console.error('renamed occurrences of '+oldName+' would be captured');
-        console.error('by existing bindings for '+newName);
-        innerScopeCaptures.forEach(function(isc){
-          console.error(isc[0],isc[1].start,'by'
-                       ,isc[2][0].name,isc[2][0].loc.start,isc[2][1]);
-        });
-        return;
+        return add({error:
+          {message:'renamed occurrences of '+oldName+' would be captured\n'
+                  +'by existing bindings for '+newName+'\n'
+                  +innerScopeCaptures.map(function(isc){
+                    return isc[0]+' '
+                          +show_loc_point(isc[1].start)+' '
+                          +'by '
+                          +isc[2][0].name+' '
+                          +show_loc_point(isc[2][0].loc.start)+' '
+                          +isc[2][1];
+                   }).join('\n')
+          ,type: 'CaptureRenamed'
+          }},'warnings',warnings);
       }
 
       if (hoistConflict) {
-        console.error('cannot rename declaration hoisted over catch');
-        console.error(hoistConflict.name,hoistConflict.loc.start);
-        return;
+        return add({error:
+          {message:'cannot rename declaration hoisted over catch\n'
+                  +hoistConflict.name+' '+show_loc_point(hoistConflict.loc.start)
+          ,type: 'HoistConflict'
+          }},'warnings',warnings);
       }
 
       newSource = replace(oldNameBinding[0],newName,source);
-      return {source: newSource};
+      return add({source: newSource},'warnings',warnings);
 
     } else
 
-      console.error("binding not found in binding scope???");
+      return add({error:
+        {message:'binding not found in binding scope???'
+        ,type: 'MissingBinding'
+        }},'warnings',warnings);
 
   } else
 
-    console.error("no binding scope found");
+    return add({error:
+      {message:'no binding scope found'
+      ,type: 'MissingBinding'
+      }},'warnings',warnings);
 
 }) }
+
+function add(obj,key,value) { if (value) obj[key] = value; return obj }
 
 // is name a valid variable name?
 // (would be nicer to call Identifier-nonterminal parser directly,
@@ -150,14 +177,12 @@ function checkName(name) {
                &&(nameAST.body[0].expression.name===name);
     if (!nameOK)
       throw 'not valid';
-    return nameOK;
 
   } catch (e) {
-    console.error('not a valid variable name >'+name+'<');
+    throw ('not a valid variable name >'+name+'<');
     // parsing an invalid Identifier as a Program leads to irrelevant
     // parse errors..
     // console.error('parse error in variable name >'+name+'<',e);
-    return false;
   }
 }
 
@@ -191,17 +216,22 @@ function insert(binding,others) {
 
 function collect(sourcefile,source,sourceAST) {
 
-  var decls = collectDecls(sourceAST);
-
-  return decls;
+  return collectDecls(sourceAST);
 
 }
 
 function findVar(name,location) {
   return parseThen(function(sourcefile,source,sourceAST) {
 
-  var binding_scope = find(name,location,sourceAST);
   var nameBinding;
+
+  var result = {};
+
+  var found         = find(name,location,sourceAST);
+  var binding_scope = found.binding_scope;
+  if (found.warnings) {
+    result.warnings = found.warnings;
+  }
 
   if (binding_scope) {
 
@@ -214,21 +244,33 @@ function findVar(name,location) {
       if (nameBinding[0].hoistConflict
         ||nameBinding[0].occurrences.some(function(o){return o.hoistConflict})) {
 
-        console.warn('WARNING! Information affected by hoisting over catch.');
-      }
+        result.scope   = binding_scope;
+        result.binding = nameBinding;
+        result.warnings = (result.warnings ? result.warnings+'\n' : '')
+                         +'WARNING! Information affected by hoisting over catch.'
 
-      return {scope:binding_scope
-             ,binding:nameBinding
-             };
+      } else {
+
+        result.scope   = binding_scope;
+        result.binding = nameBinding;
+
+      }
 
     } else
 
-      console.error("binding not found in binding scope???");
+      result.error = {message:'binding not found in binding scope???'
+                     ,type: 'MissingBinding'
+                     };
 
 
-  } else
+  } else {
 
-    console.error("no binding scope found");
+    result.error = {message:'no binding scope found'
+                   ,type: 'MissingBinding'
+                   };
+
+  }
+  return result;
 }) }
 
 // find binding_scope for variable name at location, within node
@@ -250,9 +292,11 @@ function findVar(name,location) {
 //
 function find(name,location,node) {
   var scopes = [], binding_scope = null;
+  var warnings = [];
 
   function findAction(parent) { return function(key,node,children) {
     var decls     = [];
+    var sub_decls;
     var scopebase = scopes.length;
 
     switch (node.type) {
@@ -267,7 +311,9 @@ function find(name,location,node) {
         decls.push([node.id,node.type]);
       }
 
-      decls = decls.concat(collectDecls(node.body));
+      sub_decls = collectDecls(node.body);
+      if (sub_decls.warnings) warnings.push(sub_decls.warnings);
+      decls = decls.concat(sub_decls.decls);
 
       decls.forEach(function(d){d[0].occurrences = []}); // augmenting AST
       node.freeVars = []; // augmenting AST
@@ -278,7 +324,9 @@ function find(name,location,node) {
 
     case 'Program':
 
-      decls = decls.concat(collectDecls(node.body));
+      sub_decls = collectDecls(node.body);
+      if (sub_decls.warnings) warnings.push(sub_decls.warnings);
+      decls = decls.concat(sub_decls.decls);
 
       decls.forEach(function(d){d[0].occurrences = []}); // augmenting AST
       node.freeVars = []; // augmenting AST
@@ -388,13 +436,17 @@ function find(name,location,node) {
 
   traverseWithKeys(findAction(null))(['root',node]);
 
-  return binding_scope;
+  if (warnings.length>0) {
+    return {binding_scope:binding_scope,warnings:warnings.join('\n')};
+  } else {
+    return {binding_scope:binding_scope};
+  }
 }
 
 // TODO: - do we need to collect funs and vars separately (10.5)?
 //          => just insert funs before vars, if needed?
 function collectDecls(node) {
-  var decls = [], catches = [];
+  var decls = [], catches = [], warnings = [];
 
   function collectDeclsAction(node,children) {
 
@@ -402,8 +454,8 @@ function collectDecls(node) {
 
         if (catches.indexOf(node.id.name)>-1) {
           node.id.hoistConflict = true;
-          console.warn('WARNING! hoisting function declaration over catch of same name: ',node.id.name);
-          console.warn(node.loc);
+          warnings.push('WARNING! hoisting function declaration over catch of same name: '+node.id.name);
+          warnings.push(show_loc(node.loc));
         }
         decls.push([node.id,node.type]);
         return;
@@ -416,8 +468,8 @@ function collectDecls(node) {
 
         if (catches.indexOf(node.id.name)>-1) {
           node.id.hoistConflict = true;
-          console.warn('WARNING! hoisting var declaration over catch of same name: ',node.id.name);
-          console.warn(node.loc);
+          warnings.push('WARNING! hoisting var declaration over catch of same name: '+node.id.name);
+          warnings.push(show_loc(node.loc));
         }
         decls.push([node.id,node.type]);
 
@@ -438,8 +490,21 @@ function collectDecls(node) {
   }
 
   traverse(collectDeclsAction)(node);
-  return decls;
+  if (warnings.length>0) {
+    return {decls:decls,warnings:warnings.join('\n')};
+  } else {
+    return {decls:decls};
+  }
 
+}
+
+function show_loc_point(point) {
+  return "{ line: "+point.line+", column: "+point.column+" }"
+}
+
+function show_loc(loc) {
+  return "{ start: "+show_loc_point(loc.start)+",\n"
+        +"  end: "+show_loc_point(loc.end)+" }"
 }
 
 exports.collect = parseThen(collect);
