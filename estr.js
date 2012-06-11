@@ -11,6 +11,9 @@
 var fs          = require("fs");
 var tags        = require("./tags.js");
 var scope_utils = require("./scope_utils.js");
+var ast_utils   = require("./ast_utils.js");
+
+var parseThen   = ast_utils.parseThen;
 
 // CLI, select task to perform
 switch (process.argv[2]) {
@@ -37,7 +40,10 @@ switch (process.argv[2]) {
   case "collectDecls":  // ..paths
     // experimental, temporary
     (function(){
-      var results = processJSfiles(process.argv.slice(3),scope_utils.collect);
+      var collect = scope_utils.collect;
+
+      var results = processJSfiles(process.argv.slice(3),parseThen(collect));
+
       if (results[0]) {
         if (results[0].parseError) {
 
@@ -66,10 +72,18 @@ switch (process.argv[2]) {
   case "findVar": // file varName line column
     // experimental, temporary
     (function(){
-      var results = processJSfiles([process.argv[3]]
-                                  ,scope_utils.findVar(process.argv[4]
-                                                      ,{line:   +process.argv[5]
-                                                       ,column: +process.argv[6]}));
+      var file    = process.argv[3];
+      var varName = process.argv[4];
+      var line    = +process.argv[5];
+      var column  = +process.argv[6];
+
+      var findVar = scope_utils.findVar;
+
+      var results = processJSfiles([file]
+                                  ,parseThen(findVar(varName
+                                                    ,{line:   line
+                                                     ,column: column})));
+
       if (results[0]) {
         if (results[0].warnings) {
           console.warn(results[0].warnings);
@@ -111,11 +125,19 @@ switch (process.argv[2]) {
   case "rename": // file oldName line column newName
     // experimental, work in progress
     (function(){
-      var results = processJSfiles([process.argv[3]]
-                                  ,scope_utils.rename(process.argv[4]
-                                                     ,{line:   +process.argv[5]
-                                                      ,column: +process.argv[6]}
-                                                     ,process.argv[7]));
+      var file    = process.argv[3];
+      var oldName = process.argv[4];
+      var line    = +process.argv[5];
+      var column  = +process.argv[6];
+      var newName = process.argv[7];
+
+      var rename  = scope_utils.rename;
+
+      var results = processJSfiles([file]
+                                  ,parseThen(rename(oldName
+                                                   ,{line:   line
+                                                    ,column: column}
+                                                   ,newName)));
       if (results[0]) {
         if (results[0].warnings) {
           console.warn(results[0].warnings);

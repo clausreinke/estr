@@ -63,8 +63,10 @@ This is an in-browser demo of <a href="https://github.com/clausreinke/estr">estr
 var inArea  = document.getElementById('in');
 var outArea = document.getElementById('out');
 
-var rename  = require('./scope_utils.js').rename;
-var findVar = require('./scope_utils.js').findVar;
+var rename    = require('./scope_utils.js').rename;
+var findVar   = require('./scope_utils.js').findVar;
+var parseThen = require('./ast_utils.js').parseThen;
+
 // var source  = esprima.parse.toString();
 var source  = renameAction.toString();
 
@@ -85,8 +87,9 @@ function onCursor(editor) {
     var token  = editor.getTokenAt(coords);
     console.log(token);
     if (token && token.className && token.className.match(/variable|def/)) {
-      var result = findVar(token.string,{line:coords.line+1,column:coords.ch})
-                          ('in',editor.getValue());
+      var result = parseThen(findVar(token.string,{line:coords.line+1
+                                                  ,column:coords.ch}))
+                            ('in',editor.getValue());
 
       currentVarMarks.forEach(function(mark){
         mark.clear();
@@ -180,8 +183,8 @@ function renameAction() {
     var output = [];
 
     var renamed =
-      rename(token.string,{line:coords.line+1,column:coords.ch},newName)
-            ('in',inCodeMirror.getValue());
+      parseThen(rename(token.string,{line:coords.line+1,column:coords.ch},newName))
+               ('in',inCodeMirror.getValue());
     if (renamed) {
       if (renamed.warnings) {
         output.push(renamed.warnings);
