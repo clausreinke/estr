@@ -14,19 +14,6 @@ ast_utils.registerAnnotations(['decls'
                               ,'hoistConflict'
                               ]);
 
-// wrap action to add parsing; pass AST or return parse error
-function parseThen(action) { return function(sourcefile,source) {
-
-  try {
-    var sourceAST = parse(source,{loc:true,range:true});
-  } catch (e) {
-    return {parseError:e,sourcefile:sourcefile};
-  }
-
-  return action(sourcefile,source,sourceAST);
-
-}}
-
 // rename variable oldName at loc (line/column) to newName
 //
 // 0 check oldName/newName are valid
@@ -50,7 +37,7 @@ function parseThen(action) { return function(sourcefile,source) {
 // TODO: for multiple declarations, we choose the first as the binding occurrence
 //
 function rename(oldName,location,newName) {
-  return parseThen(function(sourcefile,source,sourceAST) {
+  return function(sourcefile,source,sourceAST) {
 
   try {
     checkName(oldName); // TODO: move out?
@@ -155,7 +142,7 @@ function rename(oldName,location,newName) {
       ,type: 'MissingBinding'
       }},'warnings',warnings);
 
-}) }
+} }
 
 function add(obj,key,value) { if (value) obj[key] = value; return obj }
 
@@ -221,7 +208,7 @@ function collect(sourcefile,source,sourceAST) {
 }
 
 function findVar(name,location) {
-  return parseThen(function(sourcefile,source,sourceAST) {
+  return function(sourcefile,source,sourceAST) {
 
   var nameBinding;
 
@@ -271,7 +258,7 @@ function findVar(name,location) {
 
   }
   return result;
-}) }
+} }
 
 // find binding_scope for variable name at location, within node
 //
@@ -507,7 +494,7 @@ function show_loc(loc) {
         +"  end: "+show_loc_point(loc.end)+" }"
 }
 
-exports.collect = parseThen(collect);
+exports.collect = collect;
 
 exports.findVar = findVar;
 

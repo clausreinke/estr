@@ -5,6 +5,8 @@
 
 (function(require,exports){
 
+var esprima = require("./esprima.js");
+
 // mask out AST node fields that hold annotations, not child nodes;
 // standard annotations
 var annotation = { range:       true
@@ -15,6 +17,19 @@ var annotation = { range:       true
 function registerAnnotations(annotations) {
   annotations.forEach(function(ann){ annotation[ann] = true });
 }
+
+// wrap action to add parsing; pass AST or return parse error
+function parseThen(action) { return function(sourcefile,source) {
+
+  try {
+    var sourceAST = esprima.parse(source,{loc:true,range:true});
+  } catch (e) {
+    return {parseError:e,sourcefile:sourcefile};
+  }
+
+  return action(sourcefile,source,sourceAST);
+
+}}
 
 // building block for traversing an object-tree;
 // traverse handles AST-specific (one-level) child enumeration,
@@ -59,6 +74,7 @@ function traverseWithKeys(action) { return function(parentKey_obj) {
 } }
 
 exports.registerAnnotations = registerAnnotations;
+exports.parseThen           = parseThen;
 exports.traverse            = traverse;
 exports.traverseWithKeys    = traverseWithKeys;
 
