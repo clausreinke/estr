@@ -21,12 +21,18 @@ require.cache = { "./esprima.js": esprima };
 
 <style>
 textarea        { width: 100%; height: 10em }
+
 .currentVar     { background-color: #CEFFCE }
 .currentBinding { background-color: #B6EEE8 }
 .currentUnbound { text-decoration: underline; background-color: red }
+.Unbound        { /* text-decoration: underline; */
+                  /* -moz-text-decoration-color: red; */
+                  border-bottom: 1px solid red }
+
 #occurrences    { border: thin solid; padding: 0.2em; color: #05a }
 #next,#previous { background: #CEFFCE }
 #binding        { background: #B6EEE8 }
+
 .Error          { background: red !important}
 .Warning        { background: yellow !important}
 </style>
@@ -63,7 +69,10 @@ function CodeMirrorFrame(editor) {
   this.currentVar = null;
   this.currentVarMarks = [];
 
-  this.currentErrorMarkers = [];
+  this.unboundMarks = [];
+
+  this.currentParseErrorMarkers = [];
+  this.currentErrorMarkers      = [];
 
   this.currentAST = null;
 
@@ -105,7 +114,7 @@ CodeMirrorFrame.prototype.nextOccurrence =
   function(direction) { return function() {
     if (direction===0) {
       this.editor.setCursor({line:this.currentVar[0].loc.start.line-1
-                            ,ch:  this.currentVar[0].loc.start.column});
+                            ,ch:  this.currentVar[0].loc.start.column+1});
       return;
     }
     var coords = this.editor.getCursor(true);
@@ -122,12 +131,43 @@ CodeMirrorFrame.prototype.nextOccurrence =
     if (index>-1) {
       var target = (index+this.currentVarMarks.length+direction)
                  % this.currentVarMarks.length;
-      this.editor.setCursor(this.currentVarMarks[target].find().from);
+      var targetPos = this.currentVarMarks[target].find().from;
+      targetPos.ch++;
+      this.editor.setCursor(targetPos);
     }
   }.bind(this);
 };
 
-CodeMirrorFrame.prototype.clearErrors = function() {
+CodeMirrorFrame.prototype.clearUnboundMarks = function() {
+  this.unboundMarks.forEach(function(mark) { mark.clear() });
+  this.unboundMarks = [];
+};
+
+CodeMirrorFrame.prototype.parseError = function(e) {
+    this.currentParseErrorMarkers.push(
+      this.editor.setMarker(e.lineNumber-1,'!!','Error')
+    );
+}
+
+CodeMirrorFrame.prototype.warning = function(line) {
+    this.currentErrorMarkers.push(
+      this.editor.setMarker(line,'?','Warning')
+    );
+}
+
+CodeMirrorFrame.prototype.error = function(line) {
+    this.currentErrorMarkers.push(
+      this.editor.setMarker(line,'!','Error')
+    );
+}
+
+CodeMirrorFrame.prototype.clearErrors = function(parseErrors) {
+  if (parseErrors) {
+    this.currentParseErrorMarkers.forEach(function(line){
+      this.editor.clearMarker(line);
+    }.bind(this));
+    this.currentParseErrorMarkers = [];
+  }
   this.currentErrorMarkers.forEach(function(line){
     this.editor.clearMarker(line);
   }.bind(this));
@@ -172,16 +212,14 @@ inCodeMirror.setValue(source);
 // (re-)parse input if there has been a change
 function onChange(editor) {
 
-  inCodeMirrorFrame.clearErrors();
+  inCodeMirrorFrame.clearErrors(true);
 
   try {
     inCodeMirrorFrame.currentAST = parse(editor.getValue(),{loc:true,range:true});
     parseErrors = warnings = errors =  '';
   } catch (e) {
     parseErrors = 'parse error in source:\n'+e;
-    inCodeMirrorFrame.currentErrorMarkers.push(
-      editor.setMarker(e.lineNumber-1,'!','Error')
-    );
+    inCodeMirrorFrame.parseError(e);
   }
   outCodeMirror.setValue([parseErrors,warnings,errors].join('\n'));
 
@@ -195,9 +233,8 @@ function onCursor(editor) {
     console.log(token);
     if (token && token.className && token.className.match(/variable|def/)) {
       var result = inCodeMirrorFrame.currentAST
-                 ? findVar(token.string,{line:coords.line+1
-                                                  ,column:coords.ch})
-                           ('in',editor.getValue(),inCodeMirrorFrame.currentAST)
+                 ? findVar(token.string,{line:coords.line+1,column:coords.ch})
+                          ('in',editor.getValue(),inCodeMirrorFrame.currentAST)
                  : null;
 
       inCodeMirrorFrame.clearCurrentVar();
@@ -209,9 +246,7 @@ function onCursor(editor) {
           warnings = result.warnings;
           result.warnings.match(/start: { line: \d+/g)
                          .forEach(function(p){
-                            inCodeMirrorFrame.currentErrorMarkers.push(
-                              editor.setMarker(p.match(/\d+/)-1,'?','Warning')
-                            );
+                            inCodeMirrorFrame.warning(p.match(/\d+/)-1);
                           });
         } else {
           warnings = '';
@@ -232,6 +267,14 @@ function onCursor(editor) {
           navigation_disabled(false);
 
           inCodeMirrorFrame.setCurrentVar(result.binding);
+
+          inCodeMirrorFrame.clearUnboundMarks();
+          inCodeMirrorFrame.currentAST.freeVars.forEach(function(fv){
+            inCodeMirrorFrame.unboundMarks.push(
+              editor.markText({line:fv.loc.start.line-1,ch:fv.loc.start.column}
+                             ,{line:fv.loc.end.line-1,ch:fv.loc.end.column}
+                             ,'Unbound'))
+          });
         }
         outCodeMirror.setValue([parseErrors,warnings,errors].join('\n'));
       }
@@ -244,10 +287,11 @@ function onCursor(editor) {
 
 function renameAction() {
   try {
-    var coords = inCodeMirror.getCursor(true);
-    var token  = inCodeMirror.getTokenAt(coords);
+    var coords  = inCodeMirror.getCursor(true);
+    var token   = inCodeMirror.getTokenAt(coords);
     var newName = prompt('new name?','x____x');
-    var output = [];
+    var output  = [];
+    var matches;
 
     var renamed =
       parseThen(rename(token.string,{line:coords.line+1,column:coords.ch},newName))
@@ -257,22 +301,21 @@ function renameAction() {
         output.push(renamed.warnings);
       }
       if (renamed.parseError) { // should have been handled by onCursor
-        output.push(renamed.warnings);
-      }
-      if (renamed.error) {
+        output.push(renamed.parseError);
+      } else if (renamed.error) {
+        console.log('error',renamed.error);
         output.push(renamed.error.message);
-        renamed.error.message.match(/line: \d+/g)
-                       .forEach(function(p){
-                          inCodeMirrorFrame.currentErrorMarkers.push(
-                            inCodeMirror.setMarker(p.match(/\d+/)-1,'!','Error')
-                          );
-                        });
+        if (matches = renamed.error.message.match(/line: \d+/g)) {
+          matches.forEach(function(p){
+                            inCodeMirrorFrame.error(p.match(/\d+/)-1);
+                          });
+        }
       } else {
         inCodeMirror.setValue(renamed.source);
       }
     }
     outCodeMirror.setValue(output.join('\n'));
-  } catch (e) {
+  } catch (e) { // shouldn't occur anymore?..
     console.error(e);
     outCodeMirror.setValue('renaming failed (see error log)\n'+e);
   }
