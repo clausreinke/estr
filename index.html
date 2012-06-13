@@ -40,13 +40,13 @@ This is an in-browser demo of <a href="https://github.com/clausreinke/estr">estr
 
 <form action="#">
 <input id="oldName" type='text' title='old name'>
-<input id="rename" type='submit' value='rename'>
+<input id="rename" type='submit' value='rename' disabled>
 <input id="undo" type='submit' value='undo'>
 <input id="redo" type='submit' value='redo'>
 <span id="occurrences">
-<input id="previous" type='submit' value='previous'>
-<input id="binding" type='submit' value='binding'>
-<input id="next" type='submit' value='next'>
+<input id="previous" type='submit' value='previous' disabled>
+<input id="binding" type='submit' value='binding' disabled>
+<input id="next" type='submit' value='next' disabled>
 </span>
 </form>
 
@@ -54,11 +54,91 @@ This is an in-browser demo of <a href="https://github.com/clausreinke/estr">estr
 </textarea>
 
 <script>
-// TODO: - don't reparse on every move
-//       - reparse on change, not on action
-//       - shim forEach, .. for older browsers?
-//       - state-dependent enable/disable of buttons
+// TODO: - shim forEach, bind, .. for older browsers?
 //       - clean up
+
+function CodeMirrorFrame(editor) {
+  this.editor = editor;
+
+  this.currentVar = null;
+  this.currentVarMarks = [];
+
+  this.currentErrorMarkers = [];
+
+  this.currentAST = null;
+
+}
+
+CodeMirrorFrame.prototype.clearCurrentVar = function() {
+      this.currentVarMarks.forEach(function(mark){
+        mark.clear();
+      });
+      this.currentVarMarks = [];
+      this.currentVar      = null;
+      document.getElementById('previous').disabled = true;
+      document.getElementById('binding').disabled  = true;
+      document.getElementById('next').disabled     = true;
+};
+
+CodeMirrorFrame.prototype.setCurrentVar = function(binding) {
+  var bindLoc     = binding[0].loc;
+  this.currentVar = binding;
+  this.currentVarMarks.push(
+    this.editor.markText({line:bindLoc.start.line-1,ch:bindLoc.start.column}
+                        ,{line:bindLoc.end.line-1,  ch:bindLoc.end.column}
+                        ,'currentBinding'));
+  binding[0].occurrences
+         .forEach(function(o){
+                    this.currentVarMarks.push(
+                      this.editor.markText({line:o.loc.start.line-1
+                                           ,ch:o.loc.start.column}
+                                          ,{line:o.loc.end.line-1
+                                           ,ch:o.loc.end.column}
+                                          ,'currentVar'));
+                  }.bind(this));
+  document.getElementById('previous').disabled = false;
+  document.getElementById('binding').disabled  = false;
+  document.getElementById('next').disabled     = false;
+};
+
+CodeMirrorFrame.prototype.nextOccurrence =
+  function(direction) { return function() {
+    if (direction===0) {
+      this.editor.setCursor({line:this.currentVar[0].loc.start.line-1
+                            ,ch:  this.currentVar[0].loc.start.column});
+      return;
+    }
+    var coords = this.editor.getCursor(true);
+    var index = -1;
+    for (var i=0; i<this.currentVarMarks.length; i++) {
+      mark = this.currentVarMarks[i].find();
+      if (mark.from.line===coords.line
+       && mark.from.ch<=coords.ch
+       && mark.to.ch>=coords.ch) {
+        index = i;
+        break;
+      }
+    }
+    if (index>-1) {
+      var target = (index+this.currentVarMarks.length+direction)
+                 % this.currentVarMarks.length;
+      this.editor.setCursor(this.currentVarMarks[target].find().from);
+    }
+  }.bind(this);
+};
+
+CodeMirrorFrame.prototype.clearErrors = function() {
+  this.currentErrorMarkers.forEach(function(line){
+    this.editor.clearMarker(line);
+  }.bind(this));
+  this.currentErrorMarkers = [];
+};
+
+function navigation_disabled(flag) {
+  document.getElementById('previous').disabled = flag;
+  document.getElementById('binding').disabled  = flag;
+  document.getElementById('next').disabled     = flag;
+}
 
 var inArea  = document.getElementById('in');
 var outArea = document.getElementById('out');
@@ -66,114 +146,101 @@ var outArea = document.getElementById('out');
 var rename    = require('./scope_utils.js').rename;
 var findVar   = require('./scope_utils.js').findVar;
 var parseThen = require('./ast_utils.js').parseThen;
+var parse     = require('./esprima.js').parse;
 
 // var source  = esprima.parse.toString();
 var source  = renameAction.toString();
 
-inArea.innerHTML = source;
-
 var inCodeMirror  = CodeMirror.fromTextArea(inArea
                                            ,{onCursorActivity:onCursor
+                                            ,onChange:onChange
                                             ,gutter:true});
-var outCodeMirror = CodeMirror.fromTextArea(outArea);
 
-var currentVar      = null;
-var currentVarMarks = [];
+var inCodeMirrorFrame = new CodeMirrorFrame(inCodeMirror);
 
-var currentErrorMarkers = [];
+var outCodeMirror = CodeMirror.fromTextArea(outArea,{mode:null});
 
+var parseErrors = '';
+var warnings    = '';
+var errors      = '';
+
+inCodeMirror.setValue(source);
+
+// TODO: - wrap outCodeMirror, state and errors/warnings in object;
+
+// NOTE: CodeMirror callback order - onChange is called before onCursor;
+// (re-)parse input if there has been a change
+function onChange(editor) {
+
+  inCodeMirrorFrame.clearErrors();
+
+  try {
+    inCodeMirrorFrame.currentAST = parse(editor.getValue(),{loc:true,range:true});
+    parseErrors = warnings = errors =  '';
+  } catch (e) {
+    parseErrors = 'parse error in source:\n'+e;
+    inCodeMirrorFrame.currentErrorMarkers.push(
+      editor.setMarker(e.lineNumber-1,'!','Error')
+    );
+  }
+  outCodeMirror.setValue([parseErrors,warnings,errors].join('\n'));
+
+}
+
+// NOTE: CodeMirror callback order - onChange is called before onCursor,
+//       so we have a parse result here already
 function onCursor(editor) {
     var coords = editor.getCursor(true);
     var token  = editor.getTokenAt(coords);
     console.log(token);
     if (token && token.className && token.className.match(/variable|def/)) {
-      var result = parseThen(findVar(token.string,{line:coords.line+1
-                                                  ,column:coords.ch}))
-                            ('in',editor.getValue());
+      var result = inCodeMirrorFrame.currentAST
+                 ? findVar(token.string,{line:coords.line+1
+                                                  ,column:coords.ch})
+                           ('in',editor.getValue(),inCodeMirrorFrame.currentAST)
+                 : null;
 
-      currentVarMarks.forEach(function(mark){
-        mark.clear();
-      });
-      currentVarMarks = [];
-      currentVar      = null;
+      inCodeMirrorFrame.clearCurrentVar();
 
-      currentErrorMarkers.forEach(function(line){
-        editor.clearMarker(line);
-      });
-      currentErrorMarkers = [];
-      outCodeMirror.setValue('');
+      inCodeMirrorFrame.clearErrors();
 
       if (result) {
-        if (result.parseError) {
-          outCodeMirror.setValue('parse error in source:\n'
-                                +result.parseError);
-          console.error('parse error in source:',result.parseError);
-          currentErrorMarkers.push(
-            editor.setMarker(result.parseError.lineNumber-1,'!','Error')
-          );
-        } else if (result.error) {
-          outCodeMirror.setValue(result.error.message);
-          currentVarMarks.push(
+        if (result.warnings) {
+          warnings = result.warnings;
+          result.warnings.match(/start: { line: \d+/g)
+                         .forEach(function(p){
+                            inCodeMirrorFrame.currentErrorMarkers.push(
+                              editor.setMarker(p.match(/\d+/)-1,'?','Warning')
+                            );
+                          });
+        } else {
+          warnings = '';
+        }
+        if (result.error) {
+          errors = result.error.message;
+          inCodeMirrorFrame.currentVarMarks.push(
             editor.markText({line:coords.line,ch:token.start}
                            ,{line:coords.line,ch:token.end}
                            ,'currentUnbound'));
+          document.getElementById('oldName').value = "";
+          document.getElementById('rename').disabled = true;
+          navigation_disabled(true);
         } else {
-          if (result.warnings) {
-            outCodeMirror.setValue(outCodeMirror.getValue()+'\n'+result.warnings);
-            result.warnings.match(/start: { line: \d+/g)
-                           .forEach(function(p){
-                              currentErrorMarkers.push(
-                                editor.setMarker(p.match(/\d+/)-1,'?','Warning')
-                              );
-                            });
-          }
+          errors = '';
           document.getElementById('oldName').value = token.string;
+          document.getElementById('rename').disabled = false;
+          navigation_disabled(false);
 
-          var bindLoc = result.binding[0].loc;
-          currentVar  = result.binding;
-          currentVarMarks.push(
-            editor.markText({line:bindLoc.start.line-1,ch:bindLoc.start.column}
-                           ,{line:bindLoc.end.line-1,  ch:bindLoc.end.column}
-                           ,'currentBinding'));
-          result.binding[0]
-                .occurrences
-                .forEach(function(o){
-                          currentVarMarks.push(
-                            editor.markText({line:o.loc.start.line-1
-                                            ,ch:o.loc.start.column}
-                                           ,{line:o.loc.end.line-1
-                                            ,ch:o.loc.end.column}
-                                           ,'currentVar'));
-                         });
+          inCodeMirrorFrame.setCurrentVar(result.binding);
         }
+        outCodeMirror.setValue([parseErrors,warnings,errors].join('\n'));
       }
     } else {
       document.getElementById('oldName').value = ""; // +'('+token.className+')';
+      document.getElementById('rename').disabled = true;
+      navigation_disabled(true);
     }
 };
-
-function move(direction) { return function() {
-  if (direction===0) {
-    inCodeMirror.setCursor({line:currentVar[0].loc.start.line-1
-                           ,ch:  currentVar[0].loc.start.column});
-    return;
-  }
-  var coords = inCodeMirror.getCursor(true);
-  var index = -1;
-  for (var i=0; i<currentVarMarks.length; i++) {
-    mark = currentVarMarks[i].find();
-    if (mark.from.line===coords.line
-     && mark.from.ch<=coords.ch
-     && mark.to.ch>=coords.ch) {
-      index = i;
-      break;
-    }
-  }
-  if (index>-1) {
-    var target = (index+currentVarMarks.length+direction)%currentVarMarks.length;
-    inCodeMirror.setCursor(currentVarMarks[target].find().from);
-  }
-} }
 
 function renameAction() {
   try {
@@ -196,7 +263,7 @@ function renameAction() {
         output.push(renamed.error.message);
         renamed.error.message.match(/line: \d+/g)
                        .forEach(function(p){
-                          currentErrorMarkers.push(
+                          inCodeMirrorFrame.currentErrorMarkers.push(
                             inCodeMirror.setMarker(p.match(/\d+/)-1,'!','Error')
                           );
                         });
@@ -225,11 +292,17 @@ document.getElementById('undo')
 document.getElementById('redo')
         .addEventListener('click',refocus(inCodeMirror.redo,true),false);
 document.getElementById('next')
-        .addEventListener('click',refocus(move(+1)),false);
+        .addEventListener('click'
+                         ,refocus(inCodeMirrorFrame.nextOccurrence(+1))
+                         ,false);
 document.getElementById('binding')
-        .addEventListener('click',refocus(move(0)),false);
+        .addEventListener('click'
+                         ,refocus(inCodeMirrorFrame.nextOccurrence(0))
+                         ,false);
 document.getElementById('previous')
-        .addEventListener('click',refocus(move(-1)),false);
+        .addEventListener('click'
+                         ,refocus(inCodeMirrorFrame.nextOccurrence(-1))
+                         ,false);
 
 inCodeMirror.focus();
 
