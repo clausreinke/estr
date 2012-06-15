@@ -17,12 +17,24 @@ var tests = {started: 0
             ,ko:      0
             };
 
-function test(name,cmd,files) {
+function test(name,cmds,files) {
+
+  function exec_cmds(cmds,cb) {
+    if (typeof cmds==='string') {
+      exec(cmds,cb)
+    } else if (cmds.length===1) {
+      exec(cmds[0],cb)
+    } else if (cmds.length>1) {
+      exec(cmds[0],function(){ exec_cmds(cmds.slice(1),cb) })
+    } else {
+      throw 'cannot run test ('+name+','+cmds+','+files+')'
+    }
+  }
 
   if ((test_pattern>-1) && !name.match(process.argv[test_pattern+1]))
     return;
 
-  exec(cmd,function(error,stdout,stderr) {
+  exec_cmds(cmds,function(error,stdout,stderr) {
 
     console.log(name+' done'); tests.done++;
 
