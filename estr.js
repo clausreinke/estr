@@ -98,11 +98,11 @@ switch (process.argv[2]) {
           console.log(scope.type,scope.loc);
 
           console.log('binding occurrence: ');
-          console.log(binding[1],binding[0].loc.start);
+          console.log(file,binding[1],binding[0].loc.start);
           console.log('other occurrences: ');
-          console.log(binding[0].occurrences.map(function(o){
-                                                  return [o.name,o.loc.start]
-                                                 }));
+          binding[0].occurrences.forEach(function(o){
+                                          console.log(file,o.name,o.loc.start)
+                                         });
 
         } else if (results[0].parseError) {
 
