@@ -31,6 +31,18 @@ function test(name,cmds,files) {
     }
   }
 
+  function move_files_then(cb) {
+    if (files) { // TODO: if cmd fails, not all files might exist
+                 //       yet those that do need to be cleaned away
+      exec('mv '+files.join(' ')+' '+output_dir,function(error){
+        if (error) throw error;
+        cb([name+'.error',name+'.stdout',name+'.stderr'].concat(files),['//']);
+      });
+    } else {
+      cb([name+'.error',name+'.stdout',name+'.stderr'],['//']);
+    }
+  }
+
   if ((test_pattern>-1) && !name.match(process.argv[test_pattern+1]))
     return;
 
@@ -42,17 +54,27 @@ function test(name,cmds,files) {
     fs.writeFileSync(output_dir+name+'.stdout',stdout);
     fs.writeFileSync(output_dir+name+'.stderr',stderr);
 
-    if (process.argv.indexOf('--quick')>-1) return;
+    move_files_then(function(files,output) {
 
-    if (files) { // TODO: if cmd fails, not all files might exist
-                 //       yet those that do need to be cleaned away
-      exec('mv '+files.join(' ')+' '+output_dir,function(error){
-        if (error) throw error;
-        diff([name+'.error',name+'.stdout',name+'.stderr'].concat(files),['//']);
-      });
-    } else {
-      diff([name+'.error',name+'.stdout',name+'.stderr'],['//']);
-    }
+      if (process.argv.indexOf('--quick')>-1) {
+        // subprocesses on windows/msys kill performance,
+        // just diff the whole thing once, when all tests are done
+        tests.checked++;
+        if (tests.checked===tests.started) {
+          exec('diff -r out tmp',function(error,stdout,stderr){
+            if (error) {
+              console.log('// unexpected test output');
+              console.log(stdout);
+              console.log(stderr);
+            } else {
+              console.log('// test outputs ok');
+            }
+          });
+        }
+      } else {
+        diff(files,output)
+      }
+    });
 
   });
   tests.started++;
@@ -119,15 +141,3 @@ test('rename-success-properties','node ../estr.js rename sample.js dependency 47
 test('findVar','node ../estr.js findVar sample.js z 15 6');
 test('collectDecls','node ../estr.js collectDecls sample.js');
 
-// subprocesses on windows/msys kill performance, just diff the whole thing once
-if (process.argv.indexOf('--quick')>-1) {
-  exec('diff -r out tmp',function(error,stdout,stderr){
-    if (error) {
-      console.log('// unexpected test output');
-      console.log(stdout);
-      console.log(stderr);
-    } else {
-      console.log('// test outputs ok');
-    }
-  });
-}
