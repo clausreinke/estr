@@ -15,8 +15,11 @@ var ast_utils   = require("./ast_utils.js");
 
 var parseThen   = ast_utils.parseThen;
 
+process.argv.shift(); // node
+process.argv.shift(); // estr.js
+
 // CLI, select task to perform
-switch (process.argv[2]) {
+switch (process.argv.shift()) {
 
   case "help":
     console.log('estr (Ecmascript traversals)');
@@ -33,7 +36,7 @@ switch (process.argv[2]) {
 
   case "tags":  // ..paths
     // fairly stable, useable
-    processJSfiles(process.argv.slice(3),tags.generateTags);
+    processJSfiles(process.argv,tags.generateTags);
     fs.writeFileSync("tags",tags.tagFile().join('\n')); // TODO: OS-dep line end?
     break;
 
@@ -42,7 +45,7 @@ switch (process.argv[2]) {
     (function(){
       var collect = scope_utils.collect;
 
-      var results = processJSfiles(process.argv.slice(3),parseThen(collect));
+      var results = processJSfiles(process.argv,parseThen(collect));
 
       if (results[0]) {
         if (results[0].parseError) {
@@ -72,10 +75,10 @@ switch (process.argv[2]) {
   case "findVar": // file varName line column
     // experimental, temporary
     (function(){
-      var file    = process.argv[3];
-      var varName = process.argv[4];
-      var line    = +process.argv[5];
-      var column  = +process.argv[6];
+      var file    = process.argv.shift();
+      var varName = process.argv.shift();
+      var line    = +process.argv.shift();
+      var column  = +process.argv.shift();
 
       var findVar = scope_utils.findVar;
 
@@ -125,11 +128,11 @@ switch (process.argv[2]) {
   case "rename": // file oldName line column newName
     // experimental, work in progress
     (function(){
-      var file    = process.argv[3];
-      var oldName = process.argv[4];
-      var line    = +process.argv[5];
-      var column  = +process.argv[6];
-      var newName = process.argv[7];
+      var file    = process.argv.shift();
+      var oldName = process.argv.shift();
+      var line    = +process.argv.shift();
+      var column  = +process.argv.shift();
+      var newName = process.argv.shift();
 
       var rename  = scope_utils.rename;
 
