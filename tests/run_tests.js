@@ -30,6 +30,8 @@ function test(name,cmd,files) {
     fs.writeFileSync(output_dir+name+'.stdout',stdout);
     fs.writeFileSync(output_dir+name+'.stderr',stderr);
 
+    if (process.argv.indexOf('--quick')>-1) return;
+
     if (files) { // TODO: if cmd fails, not all files might exist
                  //       yet those that do need to be cleaned away
       exec('mv '+files.join(' ')+' '+output_dir,function(error){
@@ -105,3 +107,15 @@ test('rename-success-properties','node ../estr.js rename sample.js dependency 47
 test('findVar','node ../estr.js findVar sample.js z 15 6');
 test('collectDecls','node ../estr.js collectDecls sample.js');
 
+// subprocesses on windows/msys kill performance, just diff the whole thing once
+if (process.argv.indexOf('--quick')>-1) {
+  exec('diff -r out tmp',function(error,stdout,stderr){
+    if (error) {
+      console.log('// unexpected test output');
+      console.log(stdout);
+      console.log(stderr);
+    } else {
+      console.log('// test outputs ok');
+    }
+  });
+}
