@@ -1,4 +1,6 @@
-sample.js -text
-tags      -text
-*.stdout  -text
-*.stderr  -text
+sample.js          -text
+sample-work.js     -text
+sample-work.js.bak -text
+tags               -text
+*.stdout           -text
+*.stderr           -text

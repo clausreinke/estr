@@ -136,6 +136,10 @@ test('rename-introduce-catch-hoist-conflict','node ../estr.js rename sample.js f
 // should succeed
 test('rename-success','node ../estr.js rename sample.js z 6 20 x_____x');
 test('rename-success-properties','node ../estr.js rename sample.js dependency 47 23 x_____x');
+test('rename-success-inplace'
+    ,['cp sample.js sample-work.js'
+     ,'node ../estr.js rename -i.bak sample-work.js log 1 9 log_it']
+    ,['sample-work.js','sample-work.js.bak']);
 
 // experimental
 test('findVar','node ../estr.js findVar sample.js z 15 6');

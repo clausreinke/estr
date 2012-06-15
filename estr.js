@@ -27,8 +27,9 @@ switch (process.argv.shift()) {
     console.log('estr tags ..paths');
     console.log('   traverse paths, extract tags from .js-files, write to file "tags"');
     console.log();
-    console.log('estr rename file.js oldName <line> <column> newName');
+    console.log('estr rename [-i.suffix] file.js oldName <line> <column> newName');
     console.log('   rename oldName (at <line> <column>) to newName');
+    console.log('   -i.suffix : update file.js in-place; save original to file.js.suffix');
     console.log();
     console.log('estr findVar file.js name <line> <column>');
     console.log('   find binding and other occurrences for name');
@@ -125,9 +126,12 @@ switch (process.argv.shift()) {
     }());
     break;
 
-  case "rename": // file oldName line column newName
-    // experimental, work in progress
+  case "rename": // [-i.suffix] file oldName line column newName
     (function(){
+      var inplace;
+      if (inplace = process.argv[0].match(/^-i(\S*)/))
+        process.argv.shift();
+
       var file    = process.argv.shift();
       var oldName = process.argv.shift();
       var line    = +process.argv.shift();
@@ -148,7 +152,19 @@ switch (process.argv.shift()) {
 
         if (results[0].source) {
 
-          process.stdout.write(results[0].source);
+          if (inplace) {  // update file inplace, with optional backup
+
+            if (inplace[1]!=='') {
+              console.info(inplace[1]);
+              fs.writeFileSync(file+inplace[1],fs.readFileSync(file,'utf8'));
+            }
+            fs.writeFileSync(file,results[0].source);
+
+          } else {        // no update, write renamed source to stdout
+
+            process.stdout.write(results[0].source);
+
+          }
 
         } else if (results[0].parseError) {
 

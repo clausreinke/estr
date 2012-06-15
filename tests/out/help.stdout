@@ -3,8 +3,9 @@ estr (Ecmascript traversals)
 estr tags ..paths
    traverse paths, extract tags from .js-files, write to file "tags"
 
-estr rename file.js oldName <line> <column> newName
+estr rename [-i.suffix] file.js oldName <line> <column> newName
    rename oldName (at <line> <column>) to newName
+   -i.suffix : update file.js in-place; save original to file.js.suffix
 
 estr findVar file.js name <line> <column>
    find binding and other occurrences for name
