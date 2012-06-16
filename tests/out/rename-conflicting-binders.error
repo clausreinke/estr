@@ -1,1 +1,9 @@
-null
+Error: Command failed: WARNING! hoisting var declaration over catch of same name: e
+{ start: { line: 20, column: 8 },
+  end: { line: 20, column: 16 } }
+WARNING! hoisting function declaration over catch of same name: f
+{ start: { line: 28, column: 4 },
+  end: { line: 28, column: 24 } }
+renamed binding for a would conflict
+with existing binding for b in the same scope
+{ line: 35, column: 40 } 'FunctionExpression Parameter'

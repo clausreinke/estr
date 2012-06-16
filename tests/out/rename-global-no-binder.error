@@ -1,1 +1,7 @@
-null
+Error: Command failed: WARNING! hoisting var declaration over catch of same name: e
+{ start: { line: 20, column: 8 },
+  end: { line: 20, column: 16 } }
+WARNING! hoisting function declaration over catch of same name: f
+{ start: { line: 28, column: 4 },
+  end: { line: 28, column: 24 } }
+no binding scope found

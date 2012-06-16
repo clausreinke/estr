@@ -53,6 +53,7 @@ switch (process.argv.shift()) {
 
           console.error("parse error in "+results[0].sourcefile
                        ,results[0].parseError);
+          exitCode(1);
 
         } else if (results[0].decls){
 
@@ -67,6 +68,7 @@ switch (process.argv.shift()) {
         } else {
 
           console.error('unknown result',results[0]);
+          exitCode(1);
 
         }
       }
@@ -112,14 +114,17 @@ switch (process.argv.shift()) {
 
           console.error("parse error in "+results[0].sourcefile
                        ,results[0].parseError);
+          exitCode(1);
 
         } else if (results[0].error) {
 
           console.error(results[0].error.message);
+          exitCode(1);
 
         } else {
 
           console.error('unknown result',results[0]);
+          exitCode(1);
 
         }
       }
@@ -170,14 +175,17 @@ switch (process.argv.shift()) {
 
           console.error("parse error in "+results[0].sourcefile
                        ,results[0].parseError);
+          exitCode(1);
 
         } else if (results[0].error) {
 
           console.error(results[0].error.message);
+          exitCode(1);
 
         } else {
 
           console.error('unknown result',results[0]);
+          exitCode(1);
 
         }
       }
@@ -207,7 +215,6 @@ function processJSfiles(paths,action) {
   return results;
 }
 
-function updateFile(action) { return function(path,source) {
-  var newSource = action(path,source);
-  fs.writeFileSync(path,newSource);
-}}
+function exitCode(code) {
+  process.on('exit',function(){process.exit(1)});
+}

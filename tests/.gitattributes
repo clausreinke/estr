@@ -4,3 +4,4 @@ sample-work.js.bak -text
 tags               -text
 *.stdout           -text
 *.stderr           -text
+*.error            -text

@@ -1,1 +1,9 @@
-null
+Error: Command failed: WARNING! hoisting var declaration over catch of same name: e
+{ start: { line: 20, column: 8 },
+  end: { line: 20, column: 16 } }
+WARNING! hoisting function declaration over catch of same name: f
+{ start: { line: 28, column: 4 },
+  end: { line: 28, column: 24 } }
+renamed occurrences of ff would be captured
+by existing bindings for f
+ff { line: 42, column: 6 } by f { line: 41, column: 9 } CatchClause Parameter
