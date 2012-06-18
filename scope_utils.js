@@ -36,6 +36,23 @@ ast_utils.registerAnnotations(['decls'
 //
 // TODO: for multiple declarations, we choose the first as the binding occurrence
 //
+/**
+ * rename variable oldName at location to newName, working with
+ * source (from sourcefile) and sourceAST (from source);
+ * if successful, returns modified source;
+ * NOTE: sourceAST is augmented with binding information, in place!
+ *
+ * @param oldName     String
+ * @param location    {line: Number, column: Number}
+ * @param newName     String
+ *
+ * @param sourcefile  String
+ * @param source      String
+ * @param sourceAST   AST
+ *
+ * @returns {source:String,warnings:String}
+ *       or {error:{message:String,type:String},warnings:String}
+ */
 function rename(oldName,location,newName) {
   return function(sourcefile,source,sourceAST) {
 
@@ -207,6 +224,22 @@ function collect(sourcefile,source,sourceAST) {
 
 }
 
+/**
+ * find variable name at location, working with source
+ * (from sourcefile) and sourceAST (from source);
+ * if successful, returns binding occurrence and scope;
+ * NOTE: sourceAST is augmented with binding information, in place!
+ *
+ * @param name        String
+ * @param location    {line: Number, column: Number}
+ *
+ * @param sourcefile  String
+ * @param source      String
+ * @param sourceAST   AST
+ *
+ * @returns {scope:AST,binding:[AST,String],warnings:String}
+ *       or {error:{message:String,type:String},warnings:String}
+ */
 function findVar(name,location) {
   return function(sourcefile,source,sourceAST) {
 
