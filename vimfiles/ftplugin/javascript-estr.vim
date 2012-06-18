@@ -35,8 +35,19 @@ function! FindVar()
   let output  = system("node ".s:estr." ".command)
   let occurrences = substitute(output,".*binding occurrence","binding occurrence","")
   let s:efm = &efm
-  set efm=%-Ibinding\ occurrence:\ ,%-Iother\ occurrences:\ ,%f\ %.%#\ {\ line:\ %l\\,\ column:\ %c\ %.%#
+  set efm=%-Ibinding\ occurrence:\ ,%-Iother\ occurrences:\ ,%f\ %.%#\ {\ line:\ %l\\,\ column:\ %c-%m
   lexpr occurrences
+  let loclist = getloclist(0)
+  let pattern = []
+  for loc in loclist
+    let loc.col  = loc.col+1
+    let loc.text = substitute(loc.text,'\(%d+\)}','\1','')+1
+    let pattern += ["\\%".(loc.lnum)."l\\%>".(loc.col-1)."c\\i\\+\\%<".(loc.text+1)."c"]
+  endfor
+  set hlsearch
+  let @/ = join(pattern,'\|')
+  call search(@/)
+  call setloclist(0,loclist)
   let &efm = s:efm
 endfunction
 

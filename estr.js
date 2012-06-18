@@ -104,10 +104,10 @@ switch (process.argv.shift()) {
           console.log(scope.type,scope.loc);
 
           console.log('binding occurrence: ');
-          console.log(file,binding[1],binding[0].loc.start);
+          console.log(file+' '+binding[1]+' '+locColSpan(binding[0].loc));
           console.log('other occurrences: ');
           binding[0].occurrences.forEach(function(o){
-                                          console.log(file,o.name,o.loc.start)
+                                          console.log(file+' '+o.name+' '+locColSpan(o.loc))
                                          });
 
         } else if (results[0].parseError) {
@@ -213,6 +213,11 @@ function processJSfiles(paths,action) {
     }
   }); 
   return results;
+}
+
+function locColSpan(loc) {
+ return '{ line: '+loc.start.line
+       +', column: '+loc.start.column+'-'+loc.end.column+'}'
 }
 
 function exitCode(code) {

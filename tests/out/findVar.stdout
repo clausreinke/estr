@@ -1,6 +1,6 @@
 binding scope: 
 FunctionDeclaration { start: { line: 3, column: 0 }, end: { line: 33, column: 1 } }
 binding occurrence: 
-sample.js VariableDeclarator { line: 15, column: 6 }
+sample.js VariableDeclarator { line: 15, column: 6-7}
 other occurrences: 
-sample.js z { line: 6, column: 20 }
+sample.js z { line: 6, column: 20-21}
