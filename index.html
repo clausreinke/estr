@@ -114,7 +114,7 @@ CodeMirrorFrame.prototype.nextOccurrence =
   function(direction) { return function() {
     if (direction===0) {
       this.editor.setCursor({line:this.currentVar[0].loc.start.line-1
-                            ,ch:  this.currentVar[0].loc.start.column+1});
+                            ,ch:  this.currentVar[0].loc.start.column});
       return;
     }
     var coords = this.editor.getCursor(true);
@@ -132,7 +132,6 @@ CodeMirrorFrame.prototype.nextOccurrence =
       var target = (index+this.currentVarMarks.length+direction)
                  % this.currentVarMarks.length;
       var targetPos = this.currentVarMarks[target].find().from;
-      targetPos.ch++;
       this.editor.setCursor(targetPos);
     }
   }.bind(this);
@@ -225,11 +224,13 @@ function onChange(editor) {
 
 }
 
+function rightOf(coords) { return {line:coords.line,ch:coords.ch+1}}
+
 // NOTE: CodeMirror callback order - onChange is called before onCursor,
 //       so we have a parse result here already
 function onCursor(editor) {
     var coords = editor.getCursor(true);
-    var token  = editor.getTokenAt(coords);
+    var token  = editor.getTokenAt(rightOf(coords));
     console.log(token);
     if (token && token.className && token.className.match(/variable|def/)) {
       var result = inCodeMirrorFrame.currentAST
@@ -288,7 +289,7 @@ function onCursor(editor) {
 function renameAction() {
   try {
     var coords  = inCodeMirror.getCursor(true);
-    var token   = inCodeMirror.getTokenAt(coords);
+    var token   = inCodeMirror.getTokenAt(rightOf(coords));
     var newName = prompt('new name?','x____x');
     var output  = [];
     var matches;
