@@ -38,7 +38,26 @@ textarea        { width: 100%; height: 10em }
 </style>
 
 <body>
-This is an in-browser demo of <a href="https://github.com/clausreinke/estr">estr</a>, built with <a href="http://esprima.org/">Esprima</a> and <a href="http://codemirror.net/">CodeMirror</a>.
+<p>
+This is an in-browser demo of <a
+href="https://github.com/clausreinke/estr">estr</a>, built with <a
+href="http://esprima.org/">Esprima</a> and <a
+href="http://codemirror.net/">CodeMirror</a>. See <a
+href="http://libraryinstitute.wordpress.com/2012/06/18/introducing-estr-es-traversals-and-transformations/">Introducing
+ESTR</a> for a brief overview of estr.
+</p>
+<p id="explanation">
+In the CodeMirror-enhanced textarea below, CodeMirror supplies editing and
+basic Javascript syntax highlightling. On top of that, estr provides Javascript
+scope information and source transformation: <em>move the cursor over a
+variable to see all occurrences highlighted</em> (unbound variable occurrences
+are underlined); you can then <em>navigate to the variable declaration</em>
+(binding), <em>iterate through the occurrences</em>, or <em>rename all variable
+occurrences</em>, using the buttons under the textarea.  Renaming is guarded by
+checks that will prevent naming conflicts (try with your own code samples, and
+please <a href="https://github.com/clausreinke/estr/issues/new" title="requires github login">file a bug</a> if you find a case where renaming breaks
+scoping;-).
+</p>
 <hr>
 
 <textarea id="in">
