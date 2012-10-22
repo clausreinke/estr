@@ -4,9 +4,9 @@
 <head>
 <title>estr demo</title>
 
-<script src="CodeMirror2/lib/codemirror.js"></script>
-<link rel="stylesheet" href="CodeMirror2/lib/codemirror.css">
-<script src="CodeMirror2/mode/javascript/javascript.js"></script>
+<script src="CodeMirror3/lib/codemirror.js"></script>
+<link rel="stylesheet" href="CodeMirror3/lib/codemirror.css">
+<script src="CodeMirror3/mode/javascript/javascript.js"></script>
 
 <script src="esprima.js"></script>
 <script id="require">
@@ -34,6 +34,7 @@ textarea        { width: 100%; height: 10em }
 #binding        { background: #B6EEE8 }
 
 .Error          { background: red !important}
+.ParseError     { background: orange !important}
 .Warning        { background: yellow !important}
 </style>
 
@@ -81,6 +82,16 @@ scoping;-).
 <script>
 // TODO: - shim forEach, bind, .. for older browsers?
 //       - clean up
+// TODO: - v3 has more flexible gutter markers - use
+
+function element(tag,attributes,children) {
+   var e = document.createElement(tag);
+   for (var a in attributes) e.setAttribute(a,attributes[a]);
+   for (var c in children) e.appendChild(children[c]);
+   return e;
+}
+
+function text(txt) { return document.createTextNode(txt) }
 
 function CodeMirrorFrame(editor) {
   this.editor = editor;
@@ -92,6 +103,7 @@ function CodeMirrorFrame(editor) {
 
   this.currentParseErrorMarkers = [];
   this.currentErrorMarkers      = [];
+  this.currentWarningMarkers    = [];
 
   this.currentAST = null;
 
@@ -161,35 +173,45 @@ CodeMirrorFrame.prototype.clearUnboundMarks = function() {
   this.unboundMarks = [];
 };
 
+errorDOM      = element('span',{'class':'Error'},[text('!')]);
+parseErrorDOM = element('span',{'class':'ParseError'},[text('P')]);
+warningDOM    = element('span',{'class':'Warning'},[text('?')]);
+
 CodeMirrorFrame.prototype.parseError = function(e) {
     this.currentParseErrorMarkers.push(
-      this.editor.setMarker(e.lineNumber-1,'!!','Error')
+      this.editor.setGutterMarker(e.lineNumber-1,'ParseError',parseErrorDOM)
     );
 }
 
 CodeMirrorFrame.prototype.warning = function(line) {
-    this.currentErrorMarkers.push(
-      this.editor.setMarker(line,'?','Warning')
+    this.currentWarningMarkers.push(
+      this.editor.setGutterMarker(line,'Warning',warningDOM)
     );
 }
 
 CodeMirrorFrame.prototype.error = function(line) {
     this.currentErrorMarkers.push(
-      this.editor.setMarker(line,'!','Error')
+      this.editor.setGutterMarker(line,'Error',errorDOM)
     );
 }
 
 CodeMirrorFrame.prototype.clearErrors = function(parseErrors) {
   if (parseErrors) {
     this.currentParseErrorMarkers.forEach(function(line){
-      this.editor.clearMarker(line);
+      this.editor.setGutterMarker(line,'ParseError',null);
     }.bind(this));
     this.currentParseErrorMarkers = [];
   }
+
   this.currentErrorMarkers.forEach(function(line){
-    this.editor.clearMarker(line);
+    this.editor.setGutterMarker(line,'Error',null);
   }.bind(this));
   this.currentErrorMarkers = [];
+
+  this.currentWarningMarkers.forEach(function(line){
+    this.editor.setGutterMarker(line,'Warning',null);
+  }.bind(this));
+  this.currentWarningMarkers = [];
 };
 
 function navigation_disabled(flag) {
@@ -209,10 +231,10 @@ var parse     = require('./esprima.js').parse;
 // var source  = esprima.parse.toString();
 var source  = renameAction.toString();
 
-var inCodeMirror  = CodeMirror.fromTextArea(inArea
-                                           ,{onCursorActivity:onCursor
-                                            ,onChange:onChange
-                                            ,gutter:true});
+var inCodeMirror  = CodeMirror.fromTextArea(inArea,{gutter:true
+                                                   ,gutters:['ParseError','Error','Warning']});
+inCodeMirror.on('cursorActivity',onCursor);
+inCodeMirror.on('change',onChange);
 
 var inCodeMirrorFrame = new CodeMirrorFrame(inCodeMirror);
 
@@ -351,9 +373,9 @@ function refocus(action,repos) { return function() {
 document.getElementById('rename')
         .addEventListener('click',refocus(renameAction,true),false);
 document.getElementById('undo')
-        .addEventListener('click',refocus(inCodeMirror.undo,true),false);
+        .addEventListener('click',refocus(inCodeMirror.undo.bind(inCodeMirror),true),false);
 document.getElementById('redo')
-        .addEventListener('click',refocus(inCodeMirror.redo,true),false);
+        .addEventListener('click',refocus(inCodeMirror.redo.bind(inCodeMirror),true),false);
 document.getElementById('next')
         .addEventListener('click'
                          ,refocus(inCodeMirrorFrame.nextOccurrence(+1))
