@@ -270,9 +270,9 @@ function rightOf(coords) { return {line:coords.line,ch:coords.ch+1}}
 // NOTE: CodeMirror callback order - onChange is called before onCursor,
 //       so we have a parse result here already
 function onCursor(editor) {
-    var coords = editor.getCursor(true);
+    var coords = editor.getCursor();
     var token  = editor.getTokenAt(rightOf(coords));
-    console.log(token);
+    // console.log(token);
     if (token && token.className && token.className.match(/variable|def/)) {
       var result = inCodeMirrorFrame.currentAST
                  ? findVar(token.string,{line:coords.line+1,column:coords.ch})
@@ -329,7 +329,7 @@ function onCursor(editor) {
 
 function renameAction() {
   try {
-    var coords  = inCodeMirror.getCursor(true);
+    var coords  = inCodeMirror.getCursor();
     var token   = inCodeMirror.getTokenAt(rightOf(coords));
     var newName = prompt('new name?','x____x');
     var output  = [];
@@ -345,7 +345,7 @@ function renameAction() {
       if (renamed.parseError) { // should have been handled by onCursor
         output.push(renamed.parseError);
       } else if (renamed.error) {
-        console.log('error',renamed.error);
+        // console.log('error',renamed.error);
         output.push(renamed.error.message);
         if (matches = renamed.error.message.match(/line: \d+/g)) {
           matches.forEach(function(p){
@@ -358,16 +358,20 @@ function renameAction() {
     }
     outCodeMirror.setValue(output.join('\n'));
   } catch (e) { // shouldn't occur anymore?..
-    console.error(e);
+    // console.error(e);
     outCodeMirror.setValue('renaming failed (see error log)\n'+e);
   }
 }
 
 function refocus(action,repos) { return function() {
-  var coords = inCodeMirror.getCursor(true);
+  var coords = inCodeMirror.getCursor();
+  var scroll = inCodeMirror.getScrollInfo();
   action();
+  if (repos) {
+    inCodeMirror.setCursor(coords);
+    inCodeMirror.scrollTo(scroll.left,scroll.top);
+  }
   inCodeMirror.focus();
-  if (repos) inCodeMirror.setCursor(coords);
 }}
 
 document.getElementById('rename')
