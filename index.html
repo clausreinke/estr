@@ -125,7 +125,7 @@ CodeMirrorFrame.prototype.setCurrentVar = function(binding) {
   this.currentVarMarks.push(
     this.editor.markText({line:bindLoc.start.line-1,ch:bindLoc.start.column}
                         ,{line:bindLoc.end.line-1,  ch:bindLoc.end.column}
-                        ,'currentBinding'));
+                        ,{className:'currentBinding'}));
   binding[0].occurrences
          .forEach(function(o){
                     this.currentVarMarks.push(
@@ -133,7 +133,7 @@ CodeMirrorFrame.prototype.setCurrentVar = function(binding) {
                                            ,ch:o.loc.start.column}
                                           ,{line:o.loc.end.line-1
                                            ,ch:o.loc.end.column}
-                                          ,'currentVar'));
+                                          ,{className:'currentVar'}));
                   }.bind(this));
   document.getElementById('previous').disabled = false;
   document.getElementById('binding').disabled  = false;
@@ -306,7 +306,7 @@ function onCursor(editor) {
           inCodeMirrorFrame.currentVarMarks.push(
             editor.markText({line:coords.line,ch:token.start}
                            ,{line:coords.line,ch:token.end}
-                           ,'currentUnbound'));
+                           ,{className:'currentUnbound'}));
           document.getElementById('oldName').value = "";
           document.getElementById('rename').disabled = true;
           navigation_disabled(true);
@@ -323,7 +323,7 @@ function onCursor(editor) {
             inCodeMirrorFrame.unboundMarks.push(
               editor.markText({line:fv.loc.start.line-1,ch:fv.loc.start.column}
                              ,{line:fv.loc.end.line-1,ch:fv.loc.end.column}
-                             ,'Unbound'))
+                             ,{className:'Unbound'}))
           });
         }
         outCodeMirror.setValue([parseErrors,warnings,errors].join('\n'));
