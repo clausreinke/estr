@@ -176,7 +176,7 @@ function errorDOM(msg) {
   return element('span',{'class':'Error','title':msg},[text('!')]);
 }
 function parseErrorDOM(msg) {
-  return element('span',{'class':'ParseError','title':msg},[text('P')]);
+  return element('span',{'class':'ParseError','title':msg},[text('!')]);
 }
 function warningDOM(msg) {
   return element('span',{'class':'Warning','title':msg},[text('?')]);
@@ -252,6 +252,8 @@ var warnings    = '';
 var errors      = '';
 
 inCodeMirror.setValue(source);
+onChange(inCodeMirror); // init parsing
+onCursor(inCodeMirror); // init highlighting of unbound variables
 
 // TODO: - wrap outCodeMirror, state and errors/warnings in object;
 
@@ -260,13 +262,22 @@ inCodeMirror.setValue(source);
 function onChange(editor) {
 
   inCodeMirrorFrame.clearErrors(true);
+  inCodeMirrorFrame.clearCurrentVar();
+  inCodeMirrorFrame.clearUnboundMarks();
+  inCodeMirrorFrame.currentAST = null;
 
   try {
-    inCodeMirrorFrame.currentAST = parse(editor.getValue(),{loc:true,range:true});
+
+    inCodeMirrorFrame.currentAST =
+      parse(editor.getValue(),{loc:true,range:true});
+
     parseErrors = warnings = errors =  '';
+
   } catch (e) {
+
     parseErrors = 'parse error in source:\n'+e;
     inCodeMirrorFrame.parseError(e);
+
   }
   outCodeMirror.setValue([parseErrors,warnings,errors].join('\n'));
 
@@ -276,32 +287,55 @@ function rightOf(coords) { return {line:coords.line,ch:coords.ch+1}}
 
 // NOTE: CodeMirror callback order - onChange is called before onCursor,
 //       so we have a parse result here already
-function onCursor(editor) {
+function onCursor(editor) {  // TODO: clean up
     var coords = editor.getCursor();
     var token  = editor.getTokenAt(rightOf(coords));
-    // console.log(token);
-    if (token && token.className && token.className.match(/variable|def/)) {
-      var result = inCodeMirrorFrame.currentAST
-                 ? findVar(token.string,{line:coords.line+1,column:coords.ch})
-                          ('in',editor.getValue(),inCodeMirrorFrame.currentAST)
-                 : null;
+    var result;
+    // console.log('onCursor',token);
+
+    if (inCodeMirrorFrame.currentAST) {
+
+      if (token && token.className
+        && token.className.match(/variable|def/)) {
+
+        // cursor on variable, find occurrences
+        result = findVar(token.string
+                        ,{line:coords.line+1,column:coords.ch})
+                        ('in',editor.getValue()
+                        ,inCodeMirrorFrame.currentAST);
+
+      } else if (!inCodeMirrorFrame.currentAST.freeVars) {
+
+        // not looking at a particular variable yet;
+        // check for unbound variables, at least
+        findVar('',{line:0,column:0})
+               ('in',editor.getValue()
+               ,inCodeMirrorFrame.currentAST);
+
+      }
 
       inCodeMirrorFrame.clearCurrentVar();
-
       inCodeMirrorFrame.clearErrors();
 
       if (result) {
+
         if (result.warnings) {
+
           warnings = result.warnings;
           result.warnings.match(/start: { line: \d+/g)
                          .forEach(function(p){
                             inCodeMirrorFrame.warning(p.match(/\d+/)-1
                                                      ,result.warnings);
                           });
+
         } else {
+
           warnings = '';
+
         }
+
         if (result.error) {
+
           errors = result.error.message;
           inCodeMirrorFrame.currentVarMarks.push(
             editor.markText({line:coords.line,ch:token.start}
@@ -310,7 +344,9 @@ function onCursor(editor) {
           document.getElementById('oldName').value = "";
           document.getElementById('rename').disabled = true;
           navigation_disabled(true);
+
         } else {
+
           errors = '';
           document.getElementById('oldName').value = token.string;
           document.getElementById('rename').disabled = false;
@@ -318,20 +354,32 @@ function onCursor(editor) {
 
           inCodeMirrorFrame.setCurrentVar(result.binding);
 
-          inCodeMirrorFrame.clearUnboundMarks();
-          inCodeMirrorFrame.currentAST.freeVars.forEach(function(fv){
-            inCodeMirrorFrame.unboundMarks.push(
-              editor.markText({line:fv.loc.start.line-1,ch:fv.loc.start.column}
-                             ,{line:fv.loc.end.line-1,ch:fv.loc.end.column}
-                             ,{className:'Unbound'}))
-          });
         }
+
         outCodeMirror.setValue([parseErrors,warnings,errors].join('\n'));
+
       }
+
+      if (inCodeMirrorFrame.currentAST.freeVars) {
+
+        inCodeMirrorFrame.clearUnboundMarks();
+        inCodeMirrorFrame.currentAST.freeVars.forEach(function(fv){
+          inCodeMirrorFrame.unboundMarks.push(
+            editor.markText({line:fv.loc.start.line-1
+                            ,ch:fv.loc.start.column}
+                           ,{line:fv.loc.end.line-1
+                            ,ch:fv.loc.end.column}
+                           ,{className:'Unbound'}))
+        });
+
+      }
+
     } else {
+
       document.getElementById('oldName').value = ""; // +'('+token.className+')';
       document.getElementById('rename').disabled = true;
       navigation_disabled(true);
+
     }
 };
 
