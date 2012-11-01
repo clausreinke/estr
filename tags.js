@@ -23,6 +23,7 @@ function generateTags(sourcefile,source) {
         var scope;
 
         // TODO: various module systems
+        //        (for the moment, we fake it by tracking 'exports')
         //       not to mention various class/mixin systems or ember's 
         //         lifted object system..
         //       var f = function(){}
@@ -97,6 +98,43 @@ function generateTags(sourcefile,source) {
                            +node.loc.end.line+":"+node.loc.end.column
                     });
 
+        } else if (node.type==='AssignmentExpression') {
+
+          if (node.operator==='='
+           && node.left.type==='MemberExpression'
+           && !node.left.computed) {
+
+            if (node.left.object.type==='Identifier'
+             && node.left.object.name==='exports') {
+
+              // approximation: we don't handle module systems properly,
+              // so record tags for 'exports' properties, at least
+              tags.push({name: node.left.property.name
+                        ,file: sourcefile
+                        ,addr: node.left.property.loc.start.line
+                        ,kind: "export"
+                        ,lineno: node.left.property.loc.start.line
+                        ,scope: "global"
+                        });
+              
+            } else if (node.left.object.type==='MemberExpression'
+                    && !node.left.object.computed
+                    && node.left.object.property.type==='Identifier'
+                    && node.left.object.property.name==='prototype'
+                    && node.left.property.type==='Identifier') {
+
+              // approximation: we don't handle object properties in general,
+              // so record tags for 'prototype' properties
+              tags.push({name: node.left.property.name
+                        ,file: sourcefile
+                        ,addr: node.left.property.loc.start.line
+                        ,kind: "prototype"
+                        ,lineno: node.left.property.loc.start.line
+                        ,scope: "global"
+                        });
+
+            }
+          }
         }
 
         children.forEach(traverse(extractTags));

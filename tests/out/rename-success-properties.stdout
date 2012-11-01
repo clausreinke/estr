@@ -46,3 +46,7 @@ log(ff);
 function require(x_____x) {
   return require.cache[x_____x].dependency // computed vs non-computed properties
 }
+function Class() {}
+Class.prototype.method = function() {
+  log('doit');
+};
