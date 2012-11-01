@@ -11,6 +11,7 @@ ast_utils.registerAnnotations(['decls'
                               ,'occurrences'
                               ,'freeVars'
                               ,'innerScopes'
+                              ,'binding_decl'
                               ,'hoistConflict'
                               ]);
 
@@ -380,6 +381,7 @@ function find(name,location,node) {
                                    if (d[0].name===node.name) {
                                      if (d[0]!==node)
                                        d[0].occurrences.push(node); // augmenting AST
+                                     node.binding_decl = d[0]; // augmenting AST
                                      return true;
                                    } else
                                      return false;
@@ -402,6 +404,7 @@ function find(name,location,node) {
 
         }
       }
+      // TODO: bind unbound variables as implicit globals?
 
     }
 

@@ -73,10 +73,45 @@ function traverseWithKeys(action) { return function(parentKey_obj) {
     action(parentKey,object,children);
 } }
 
+// find ast node from location
+// (tightest location span including location)
+function findNode(location,node) {
+  var target;
+
+  function findAction(node,children) {
+
+    if (node.loc
+     && node.loc.start.line<=location.line
+     && node.loc.end.line>=location.line
+     && node.loc.start.column<=location.column
+     && node.loc.end.column>=location.column) {
+
+     if (!target
+      || (node.loc.start.line>=target.loc.start.line
+       || node.loc.end.line<=target.loc.end.line
+       || node.loc.start.column>=target.loc.start.column
+       || node.loc.end.column<=target.loc.end.column
+         )) {
+
+       target = node;
+
+     }
+
+    }
+
+    children.forEach(traverse(findAction));
+  }
+
+  traverse(findAction)(node);
+
+  return target;
+}
+
 exports.registerAnnotations = registerAnnotations;
 exports.parseThen           = parseThen;
 exports.traverse            = traverse;
 exports.traverseWithKeys    = traverseWithKeys;
+exports.findNode            = findNode;
 
 }(typeof require==='function'
    ? require
