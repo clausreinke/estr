@@ -150,18 +150,32 @@ function generateTags(sourcefile,source) {
 
           node.properties.forEach(function(property){
 
-            if (property.value.type==='FunctionExpression' && property.key.value) {
+            if (property.value.type==='FunctionExpression') {
+              if (property.key.value) {
 
-              // approximation: we don't handle object properties properly,
-              // so record tags for function properties as globals
-              tags.push({name: property.key.value
-                        ,file: sourcefile
-                        ,addr: property.loc.start.line
-                        ,kind: "property"
-                        ,lineno: property.loc.start.line
-                        ,scope: "global"
-                        });
+                // approximation: we don't handle object properties properly,
+                // so record tags for function properties as globals
+                tags.push({name: property.key.value
+                          ,file: sourcefile
+                          ,addr: property.loc.start.line
+                          ,kind: "property"
+                          ,lineno: property.loc.start.line
+                          ,scope: "global"
+                          });
 
+              } else if (property.key.name) {
+
+                // approximation: we don't handle object properties properly,
+                // so record tags for function properties as globals
+                tags.push({name: property.key.name
+                          ,file: sourcefile
+                          ,addr: property.loc.start.line
+                          ,kind: "property"
+                          ,lineno: property.loc.start.line
+                          ,scope: "global"
+                          });
+
+              }
             }
 
           });

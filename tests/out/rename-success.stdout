@@ -51,6 +51,6 @@ Class.prototype.method = function() {
   log('doit');
 };
 var obj = { "method_f" : function() {}
-          , "method_g" : function() {}
+          , method_g : function() {}
           };
 obj.method_h = function() {};
