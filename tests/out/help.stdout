@@ -1,7 +1,9 @@
 estr (Ecmascript traversals)
 
-estr tags ..paths
+estr tags [--classic] [-o tagfile] ..paths
    traverse paths, extract tags from .js-files, write to file "tags"
+   --classic  : record imprecise tags (function assignments and properties)
+   -o tagfile : write to file tagfile
 
 estr rename [-i.suffix] file.js oldName <line> <column> newName
    rename oldName (at <line> <column>) to newName

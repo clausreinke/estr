@@ -24,8 +24,10 @@ switch (process.argv.shift()) {
   case "help":
     console.log('estr (Ecmascript traversals)');
     console.log();
-    console.log('estr tags ..paths');
+    console.log('estr tags [--classic] [-o tagfile] ..paths');
     console.log('   traverse paths, extract tags from .js-files, write to file "tags"');
+    console.log('   --classic  : record imprecise tags (function assignments and properties)');
+    console.log('   -o tagfile : write to file tagfile');
     console.log();
     console.log('estr rename [-i.suffix] file.js oldName <line> <column> newName');
     console.log('   rename oldName (at <line> <column>) to newName');
@@ -35,10 +37,13 @@ switch (process.argv.shift()) {
     console.log('   find binding and other occurrences for name');
     break;
 
-  case "tags":  // ..paths
-    // fairly stable, useable
-    processJSfiles(process.argv,tags.generateTags);
-    fs.writeFileSync("tags",tags.tagFile().join('\n')); // TODO: OS-dep line end?
+  case "tags":  // [--classic] [-o tagfile] ..paths
+    (function(){
+      // fairly stable, useable
+      var options = tags.flags();
+      processJSfiles(process.argv,tags.generateTags);
+      fs.writeFileSync(options.tagFile,tags.tagFile().join('\n')); // TODO: OS-dep line end?
+    })();
     break;
 
   case "collectDecls":  // ..paths

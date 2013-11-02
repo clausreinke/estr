@@ -115,6 +115,7 @@ try { fs.mkdirSync('tmp'); } catch(e) {}
 test('help','node ../estr.js help');
 
 test('tags','node ../estr.js tags sample.js',['tags']);
+test('tags-classic','node ../estr.js tags --classic -o tags.classic sample.js',['tags.classic']);
 
 // should fail
 test('rename-invalid-oldName','node ../estr.js rename sample.js old-name 0 0 newName');

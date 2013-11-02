@@ -2,6 +2,7 @@ sample.js          -text
 sample-work.js     -text
 sample-work.js.bak -text
 tags               -text
+tags.classic       -text
 *.stdout           -text
 *.stderr           -text
 *.error            -text

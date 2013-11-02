@@ -116,15 +116,15 @@ function generateTags(sourcefile,source) {
                         ,lineno: node.left.property.loc.start.line
                         ,scope: "global"
                         });
-              
+
             } else if (node.left.object.type==='MemberExpression'
                     && !node.left.object.computed
                     && node.left.object.property.type==='Identifier'
                     && node.left.object.property.name==='prototype'
                     && node.left.property.type==='Identifier') {
 
-              // approximation: we don't handle object properties in general,
-              // so record tags for 'prototype' properties
+              // approximation: we don't handle object properties properly,
+              // so record tags for 'prototype' properties as globals
               tags.push({name: node.left.property.name
                         ,file: sourcefile
                         ,addr: node.left.property.loc.start.line
@@ -133,8 +133,39 @@ function generateTags(sourcefile,source) {
                         ,scope: "global"
                         });
 
+            } else if (classic && node.right.type==='FunctionExpression') {
+
+              // approximation: record tags for function assignments as globals
+              tags.push({name: node.left.property.name
+                        ,file: sourcefile
+                        ,addr: node.left.property.loc.start.line
+                        ,kind: "fa"
+                        ,lineno: node.left.property.loc.start.line
+                        ,scope: "global"
+                        });
+
             }
           }
+        } else if (classic && node.type==='ObjectExpression') {
+
+          node.properties.forEach(function(property){
+
+            if (property.value.type==='FunctionExpression' && property.key.value) {
+
+              // approximation: we don't handle object properties properly,
+              // so record tags for function properties as globals
+              tags.push({name: property.key.value
+                        ,file: sourcefile
+                        ,addr: property.loc.start.line
+                        ,kind: "property"
+                        ,lineno: property.loc.start.line
+                        ,scope: "global"
+                        });
+
+            }
+
+          });
+
         }
 
         children.forEach(traverse(extractTags));
@@ -172,11 +203,25 @@ function tagFile() {
   return tagFile;
 }
 
+var classic = false;
+function flags() {
+  var tagFile = "tags";
+  if (classic = process.argv[0]==="--classic")
+    process.argv.shift();
+  if (process.argv[0]==="-o") {
+    process.argv.shift();
+    tagFile = process.argv.shift();
+  }
+  return {tagFile: tagFile}
+}
+
 exports.tags = tags;
 
 exports.generateTags = generateTags;
 
 exports.tagFile = tagFile;
+
+exports.flags = flags;
 
 }(typeof require==='function'
    ? require

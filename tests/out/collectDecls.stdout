@@ -5,3 +5,4 @@ outer { line: 35, column: 9 } FunctionDeclaration
 ff { line: 42, column: 6 } VariableDeclarator
 require { line: 46, column: 9 } FunctionDeclaration
 Class { line: 49, column: 9 } FunctionDeclaration
+obj { line: 53, column: 4 } VariableDeclarator
